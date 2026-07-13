@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import: "optional:file:.env[.properties]"
+  datasource:
+    url: ${WMS_DB_URL:jdbc:postgresql://localhost:5432/wms}
+    username: ${WMS_DB_USERNAME:wms}
+    password: ${WMS_DB_PASSWORD:wms_dev_password}
+  flyway:
+    locations:
+      - classpath:db/migration
+      - classpath:db/devdata
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.alexandergomez.wms: DEBUG
+    org.hibernate.SQL: INFO

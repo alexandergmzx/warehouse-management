@@ -1,0 +1,22 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE and OS files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime and local configuration
+.env
+config/*.yml
+config/*.yaml
+logs/
+*.log
+
+# Generated labels and reports
+output/

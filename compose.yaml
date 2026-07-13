@@ -1,0 +1,24 @@
+name: miniature-wms
+
+services:
+  postgres:
+    image: postgres:17.10-alpine
+    container_name: wms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${WMS_DB_NAME:-wms}
+      POSTGRES_USER: ${WMS_DB_USERNAME:-wms}
+      POSTGRES_PASSWORD: ${WMS_DB_PASSWORD:-wms_dev_password}
+    ports:
+      - "127.0.0.1:${WMS_DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WMS_DB_USERNAME:-wms} -d ${WMS_DB_NAME:-wms}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - wms-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  wms-postgres-data:

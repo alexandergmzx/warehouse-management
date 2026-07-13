@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: preprod
+  datasource:
+    url: ${WMS_DB_URL}
+    username: ${WMS_DB_USERNAME}
+    password: ${WMS_DB_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: INFO
+    com.alexandergomez.wms: INFO
