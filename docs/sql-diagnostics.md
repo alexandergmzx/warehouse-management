@@ -1,6 +1,8 @@
 # SQL diagnostic query pack
 
-Run these queries against the same database used by the WMS application. They are read-only and safe during normal operation. Record the query, UTC execution time, active Spring profile, build version, and correlation/order/task identifiers in incident evidence.
+**Status: aligned with the approved V1 baseline schema (ADR 0002 through ADR 0004). The schema and seed data are validated by `FlywayMigrationIT`; executing this query pack against a running development database and recording the documented results remains an open Phase 6 acceptance step.**
+
+These queries are read-only against the same database used by the WMS application. Record the query, UTC execution time, active Spring profile, build version, and correlation/order/task identifiers in incident evidence.
 
 Example interactive connection from the project directory:
 
@@ -52,9 +54,17 @@ ORDER BY created_at DESC;
 SELECT id, movement_type, quantity_delta, resulting_quantity, correlation_id, occurred_at
 FROM stock_movement
 WHERE picking_task_id = (SELECT id FROM picking_task WHERE task_number = 'DEMO-1002-001-01');
+
+SELECT transition.previous_status, transition.new_status, transition.reason,
+       u.username AS actor, d.device_code, transition.occurred_at
+FROM task_transition transition
+LEFT JOIN app_user u ON u.id = transition.actor_user_id
+LEFT JOIN device d ON d.id = transition.device_id
+WHERE transition.picking_task_id = (SELECT id FROM picking_task WHERE task_number = 'DEMO-1002-001-01')
+ORDER BY transition.occurred_at, transition.id;
 ```
 
-Do not repair a task with direct SQL. Capture evidence and use the future administration recovery operation so that state changes remain logged and tested.
+Do not repair a task with direct SQL. Capture evidence and use the administrative block/resume recovery operations approved in ADR 0004 (delivered with the Phase 7 API) so that state changes remain logged, audited in `task_transition`, and tested.
 
 ## 2. Find stock discrepancies against movements
 
@@ -151,7 +161,7 @@ ORDER BY m.occurred_at, m.id;
 
 ## 3. Trace one order end to end (current-state reconstruction)
 
-Purpose: combine order creation, current line/task state, and immutable stock movements in one evidence stream. Change only the value in `params`. Phase 1 does not store every intermediate scan transition, so the task row is a current/final-state snapshot rather than a complete transition history; phase 4 structured logs provide those intermediate events.
+Purpose: combine order creation, current line/task state, the append-only task-transition history, and immutable stock movements in one evidence stream. Change only the value in `params`. The approved V1 schema records every task state change in the append-only `task_transition` ledger, so the trace shows the complete transition history alongside the current task snapshot. Phase 9 structured logs will add request-level correlation on top of this database evidence.
 
 ```sql
 WITH params AS (
@@ -196,10 +206,36 @@ line_events AS (
     JOIN article a ON a.id = ol.article_id
     JOIN params p ON p.order_number = o.order_number
 ),
+transition_events AS (
+    SELECT
+        transition.occurred_at AS event_time,
+        3 AS event_sequence,
+        'TRANSITION_' || transition.new_status AS event_type,
+        o.order_number,
+        ol.line_number,
+        t.task_number,
+        NULL::BIGINT AS movement_id,
+        jsonb_build_object(
+            'previousStatus', transition.previous_status,
+            'newStatus', transition.new_status,
+            'actor', u.username,
+            'device', d.device_code,
+            'reason', transition.reason,
+            'correlationId', transition.correlation_id,
+            'confirmationId', transition.confirmation_id
+        ) AS details
+    FROM task_transition transition
+    JOIN picking_task t ON t.id = transition.picking_task_id
+    JOIN order_line ol ON ol.id = t.order_line_id
+    JOIN customer_order o ON o.id = ol.order_id
+    LEFT JOIN app_user u ON u.id = transition.actor_user_id
+    LEFT JOIN device d ON d.id = transition.device_id
+    JOIN params p ON p.order_number = o.order_number
+),
 task_events AS (
     SELECT
         COALESCE(t.completed_at, t.last_transition_at, t.created_at) AS event_time,
-        3 AS event_sequence,
+        4 AS event_sequence,
         'TASK_' || t.status AS event_type,
         o.order_number,
         ol.line_number,
@@ -228,7 +264,7 @@ task_events AS (
 movement_events AS (
     SELECT
         m.occurred_at AS event_time,
-        4 AS event_sequence,
+        5 AS event_sequence,
         'MOVEMENT_' || m.movement_type AS event_type,
         o.order_number,
         ol.line_number,
@@ -260,6 +296,8 @@ FROM (
     UNION ALL
     SELECT * FROM line_events
     UNION ALL
+    SELECT * FROM transition_events
+    UNION ALL
     SELECT * FROM task_events
     UNION ALL
     SELECT * FROM movement_events
@@ -267,7 +305,7 @@ FROM (
 ORDER BY event_time, event_sequence, line_number NULLS FIRST, task_number NULLS FIRST, movement_id NULLS FIRST;
 ```
 
-Expected seed result for `DEMO-1003`: one completed order, one picked line, one completed task, and one `PICK` movement for `-2` units. The movement's `correlationId`, task, user, and device are the primary joins back to structured logs.
+Expected seed result for `DEMO-1003`: one completed order, one completed line, five `TRANSITION_*` audit events (`AVAILABLE` through `COMPLETED`), one completed-task snapshot, and one `PICK` movement for `-2` units. The transition and movement `correlationId`, task, user, and device values are the primary joins back to structured logs.
 
 ## 4. Integrity overview for shift handover
 
@@ -282,6 +320,10 @@ SELECT 'stuck_tasks', count(*)
 FROM picking_task
 WHERE status IN ('ASSIGNED', 'LOCATION_CONFIRMED', 'ARTICLE_CONFIRMED')
   AND last_transition_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes'
+UNION ALL
+SELECT 'blocked_tasks', count(*)
+FROM picking_task
+WHERE status = 'BLOCKED'
 UNION ALL
 SELECT 'completed_orders', count(*)
 FROM customer_order

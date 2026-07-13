@@ -1,11 +1,15 @@
 # HHT and administration REST contract
 
+**Status: accepted design specification; implementation is the Phase 7 deliverable.**
 Contract version: `v1`  
 Base URL on the LAN: `http://<wms-host>:8080/api/v1`  
 Media type: `application/json`  
 Timestamps: UTC ISO-8601 strings
 
-This contract is intentionally small. Additive response fields may be introduced, but existing fields, paths, state names, and error codes must not change within `v1`.
+This contract is intentionally small. After `v1` is implemented and published,
+additive response fields may be introduced, but existing fields, paths, state
+names, and error codes must not change within that version. The approved design
+defaults are recorded in `docs/research/phase-3-mvp-recommendation.md`.
 
 ## Common rules
 
@@ -25,26 +29,32 @@ QR payloads are exact and case-sensitive:
 
 ### Error body
 
-All application errors use this shape:
+All application errors use RFC 9457 `application/problem+json`. The required
+members are `type`, `title`, `status`, `code`, and `correlationId`; `detail`,
+`instance`, and endpoint-approved safe extensions are optional.
 
 ```json
 {
-  "timestamp": "2026-07-11T14:23:08.412Z",
+  "type": "https://warehouse.example/problems/wrong-location",
+  "title": "Wrong location",
   "status": 409,
   "code": "WRONG_LOCATION",
-  "message": "Scanned location does not match the assigned task.",
+  "detail": "Scanned location does not match the assigned task.",
   "correlationId": "450ad1c5-6006-4c98-b48f-3e92a9db6ae7",
-  "details": {
-    "taskId": 101,
-    "expectedLocationCode": "A-01-02",
-    "scannedQrValue": "LOC:A-01-01"
-  }
+  "taskId": 101,
+  "expectedLocationCode": "A-01-02",
+  "scannedQrValue": "LOC:A-01-01"
 }
 ```
 
-Validation errors use status `422`, code `VALIDATION_FAILED`, and a `details.fields` object. Malformed JSON uses `400` and `MALFORMED_REQUEST`.
+Endpoint-approved extensions must not expose credentials, tokens, password
+hashes, arbitrary request bodies, or internal exception details. Validation
+errors use status `422`, code `VALIDATION_FAILED`, and a `fields` object.
+Malformed JSON uses `400` and `MALFORMED_REQUEST`.
 
-Common bearer-token errors are `401 INVALID_TOKEN`, `401 TOKEN_EXPIRED`, and `401 TOKEN_REVOKED`. An authenticated user without the required role receives `403 FORBIDDEN`.
+Common bearer-token errors are `401 INVALID_TOKEN`, `401 TOKEN_EXPIRED`, and
+`401 TOKEN_REVOKED`. An authenticated user without the required role receives
+`403 FORBIDDEN`.
 
 ## Authentication
 
@@ -99,7 +109,21 @@ Valid progression:
 
 `AVAILABLE → ASSIGNED → LOCATION_CONFIRMED → ARTICLE_CONFIRMED → COMPLETED`
 
-Wrong scans and rejected quantities leave the task in its prior state.
+Orders and lines use the states `OPEN`, `IN_PROGRESS`, and `COMPLETED`. An
+order or line becomes `IN_PROGRESS` when its first task is claimed; a line
+completes only when all its tasks complete, and an order completes only when
+all its lines complete.
+
+An administrator may move an uncompleted task to `BLOCKED` with a required
+reason and later resume it to `AVAILABLE` through the administration recovery
+endpoints. The HHT has no skip, block, or resume operation.
+
+Wrong scans and rejected quantities leave the task in their prior state. A
+repeated correct scan returns the current task representation with
+`replayed: true` and never regresses state. Final confirmation requires a
+client-generated UUID; repeating that UUID with the same canonical payload
+returns the original result, while a different payload returns
+`409 CONFIRMATION_ID_REUSED`.
 
 ### `GET /hht/tasks/next`
 
@@ -186,7 +210,7 @@ Errors:
 
 ### `POST /hht/tasks/{taskId}/confirm`
 
-`confirmationId` is generated once by the HHT and retained across network retries. A retry with the same ID and payload returns the same task, movement, quantity, stock balance, and completion timestamp without decrementing stock again. The nested order state is read at retry time and may have advanced from `PICKING` to `COMPLETED`.
+`confirmationId` is generated once by the HHT and retained across network retries. A retry with the same ID and payload returns the same task, movement, quantity, stock balance, and completion timestamp without decrementing stock again. The nested order state is read at retry time and may have advanced from `IN_PROGRESS` to `COMPLETED`.
 
 Request:
 
@@ -208,7 +232,7 @@ Response `200 OK`:
   "remainingStock": 0,
   "order": {
     "number": "DEMO-1001",
-    "state": "PICKING"
+    "state": "IN_PROGRESS"
   },
   "completedAt": "2026-07-11T14:26:03Z"
 }
@@ -250,7 +274,7 @@ Response `201 Created` with `Location: /api/v1/admin/orders/WEB-2026-00042`:
 ```json
 {
   "orderNumber": "WEB-2026-00042",
-  "state": "RELEASED",
+  "state": "OPEN",
   "createdAt": "2026-07-11T14:20:00Z",
   "lineCount": 2,
   "taskCount": 3
@@ -266,7 +290,7 @@ Response `200 OK`:
 ```json
 {
   "orderNumber": "WEB-2026-00042",
-  "state": "PICKING",
+  "state": "IN_PROGRESS",
   "createdAt": "2026-07-11T14:20:00Z",
   "completedAt": null,
   "lines": [
@@ -275,7 +299,7 @@ Response `200 OK`:
       "articleSku": "ART-001",
       "requestedQuantity": 25,
       "pickedQuantity": 20,
-      "state": "PICKING",
+      "state": "IN_PROGRESS",
       "tasks": [
         { "id": 101, "locationCode": "A-01-01", "quantity": 20, "state": "COMPLETED" },
         { "id": 102, "locationCode": "A-01-02", "quantity": 5, "state": "AVAILABLE" }
@@ -289,7 +313,7 @@ Returns `404 ORDER_NOT_FOUND` when absent.
 
 ### `GET /admin/tasks?state=AVAILABLE&state=ASSIGNED`
 
-Returns a JSON array of task summaries for the dashboard. Optional filters are repeated `state` values, `orderNumber`, `assignedUsername`, and `stuckOnly`. Allowed states are `AVAILABLE`, `ASSIGNED`, `LOCATION_CONFIRMED`, `ARTICLE_CONFIRMED`, and `COMPLETED`. This PoC returns at most 500 rows ordered by last transition time descending; it returns `200 OK` with an empty array when no task matches.
+Returns a JSON array of task summaries for the dashboard. Optional filters are repeated `state` values, `orderNumber`, `assignedUsername`, and `stuckOnly`. Allowed states are `AVAILABLE`, `ASSIGNED`, `LOCATION_CONFIRMED`, `ARTICLE_CONFIRMED`, `BLOCKED`, and `COMPLETED`. This PoC returns at most 500 rows ordered by last transition time descending; it returns `200 OK` with an empty array when no task matches.
 
 Response `200 OK`:
 
@@ -311,6 +335,52 @@ Response `200 OK`:
   }
 ]
 ```
+
+### `POST /admin/tasks/{taskId}/block`
+
+Administrative recovery per ADR 0004. Moves an `AVAILABLE`, `ASSIGNED`, `LOCATION_CONFIRMED`, or `ARTICLE_CONFIRMED` task to `BLOCKED`. Blocking preserves the task's allocation and physical stock, releases any user/device assignment, clears scan confirmations, and appends one audit transition with the required reason.
+
+Request:
+
+```json
+{ "reason": "Damaged carton at A-01-01; awaiting supervisor recount" }
+```
+
+Response `200 OK`:
+
+```json
+{
+  "taskId": 102,
+  "state": "BLOCKED",
+  "reason": "Damaged carton at A-01-01; awaiting supervisor recount",
+  "blockedAt": "2026-07-11T15:02:44Z"
+}
+```
+
+Errors:
+
+- `404 TASK_NOT_FOUND`
+- `409 INVALID_TASK_STATE` when the task is already `BLOCKED` or `COMPLETED`
+- `422 VALIDATION_FAILED` when `reason` is missing or blank
+
+### `POST /admin/tasks/{taskId}/resume`
+
+Returns a `BLOCKED` task to `AVAILABLE`. Resume preserves the FIFO and allocation fields, leaves stock unchanged, and appends one audit transition; the task becomes claimable again in normal global FIFO order. The request has no body.
+
+Response `200 OK`:
+
+```json
+{
+  "taskId": 102,
+  "state": "AVAILABLE",
+  "resumedAt": "2026-07-11T15:40:10Z"
+}
+```
+
+Errors:
+
+- `404 TASK_NOT_FOUND`
+- `409 INVALID_TASK_STATE` when the task is not `BLOCKED`
 
 ### `POST /admin/articles`
 
@@ -338,7 +408,7 @@ Errors include `409 ARTICLE_ALREADY_EXISTS` and `422 VALIDATION_FAILED`.
 
 ### `POST /admin/locations`
 
-Creates a pick location. `code` must match `^[A-Z]+-[0-9]{2}-[0-9]{2}$`; `pickSequence` is a unique positive integer reserved for future route optimization. The phase-2 allocator deliberately uses location-code order, not `pickSequence`. The server derives the QR value as `LOC:<code>`.
+Creates a pick location. `code` must match `^[A-Z]+-[0-9]{2}-[0-9]{2}$`; `pickSequence` is a unique positive integer reserved for future route optimization. The proposed allocator deliberately uses location-code order, not `pickSequence`. The server derives the QR value as `LOC:<code>`.
 
 Request:
 

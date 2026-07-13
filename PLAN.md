@@ -2,11 +2,11 @@
 
 ## Plan status
 
-**Current stage:** research and workstation preparation  
-**Implementation status:** blocked pending research and explicit approval  
+**Current stage:** implementation — Phase 5 rebaseline and Phase 6 database foundation  
+**Implementation status:** authorized by the project owner after the Phase 3 design approvals (ADRs 0002–0008); Phases 7–10 remain gated  
 **Tool installation owner:** project owner; assistants must not install or configure system tools unless explicitly asked later
 
-The existing source code, configuration, migrations, API contract, and documentation were generated before the intended research stage. They remain in the repository as **provisional drafts**, not as approved architecture or completed phases. They must not be extended merely because they compile.
+The pre-research scaffold was reviewed in the Phase 5 rebaseline. The Maven build, schema baseline, development fixtures, and migration tests now reflect the approved design (ADRs 0002–0008). Artifacts belonging to later phases — REST controllers, services, dashboard, labels, CI hardening, and runbooks — remain **provisional drafts** until their phase is implemented and evidenced.
 
 ## Purpose
 
@@ -54,8 +54,8 @@ Until the design approval gate is passed:
 
 - [x] Keep the existing generated files rather than deleting them.
 - [x] Mark them as provisional and unapproved.
-- [ ] Create an inventory after research that classifies every artifact as **keep**, **revise**, **replace**, or **remove**.
-- [ ] Record any useful behavior already represented by the drafts without treating it as a final decision.
+- [x] Create an inventory after research that classifies every artifact as **keep**, **revise**, **replace**, or **remove**. Evidence: `docs/research/provisional-artifact-inventory.md`.
+- [x] Record any useful behavior already represented by the drafts without treating it as a final decision. Evidence: `docs/research/provisional-artifact-inventory.md`.
 
 ### Gate
 
@@ -344,20 +344,22 @@ Compare accepted practices for:
 
 Before implementation, produce:
 
-- [ ] a source register with links, access dates, and short findings;
-- [ ] a technology comparison matrix;
-- [ ] a WMS workflow/state diagram;
-- [ ] an entity and relationship outline;
-- [ ] stock, allocation, task, movement, and idempotency invariants;
-- [ ] proposed transaction and lock boundaries;
-- [ ] a configuration and secret-handling model;
-- [ ] a logging/event field catalogue;
-- [ ] an error-code catalogue;
-- [ ] a requirements-to-test traceability matrix;
-- [ ] a risk register;
-- [ ] architecture decision records for disputed choices.
+- [x] a source register with links, access dates, and short findings;
+- [x] a technology comparison matrix;
+- [x] a WMS workflow/state diagram;
+- [x] an entity and relationship outline;
+- [x] stock, allocation, task, movement, and idempotency invariants;
+- [x] proposed transaction and lock boundaries;
+- [x] a configuration and secret-handling model;
+- [x] a logging/event field catalogue;
+- [x] an error-code catalogue;
+- [x] a requirements-to-test traceability matrix;
+- [x] a risk register;
+- [x] architecture decision records for disputed choices. Evidence: `docs/decisions/0002` through `docs/decisions/0008`.
 
 Research notes must distinguish **source finding**, **project interpretation**, **decision**, and **open question**.
+
+Draft evidence for the completed output items is in `docs/research/phase-2-research.md`. Checked output items are produced for review, not approved design decisions.
 
 ## Phase 3 — Design checkpoint
 
@@ -365,21 +367,25 @@ Implementation requires explicit project-owner approval of all items below.
 
 ### Decisions to approve
 
-- [ ] Exact Java, Spring Boot, Maven, PostgreSQL, Flyway, and Testcontainers versions.
-- [ ] Docker Compose or native PostgreSQL for local development.
-- [ ] Java only or Java plus Kotlin, with a reason tied to the portfolio goal.
-- [ ] Persistence approach for ordinary CRUD and locking-heavy operations.
-- [ ] Stock availability/allocation formula and reservation timing.
-- [ ] Administrative recovery behavior for blocked tasks.
-- [ ] Authentication and token lifecycle appropriate to a LAN PoC.
-- [ ] Entity model, state machines, constraints, and transaction boundaries.
-- [ ] HHT API outline and idempotency semantics.
-- [ ] Logging, configuration, testing, evidence, and runbook standards.
-- [ ] Explicitly excluded features.
+- [x] Exact Java, Spring Boot, Maven, PostgreSQL, Flyway, and Testcontainers versions. Evidence: ADR 0002.
+- [x] Docker Compose or native PostgreSQL for local development. Evidence: ADR 0002.
+- [x] Java only or Java plus Kotlin, with a reason tied to the portfolio goal. Evidence: ADR 0002.
+- [x] Persistence approach for ordinary CRUD and locking-heavy operations. Evidence: ADR 0003.
+- [x] Stock availability/allocation formula and reservation timing. Evidence: ADR 0003.
+- [x] Administrative recovery behavior for blocked tasks. Evidence: ADR 0004.
+- [x] Authentication and token lifecycle appropriate to a LAN PoC. Evidence: ADR 0005.
+- [x] Entity model, state machines, constraints, and transaction boundaries. Evidence: ADRs 0003 and 0004.
+- [x] HHT API outline and idempotency semantics. Evidence: ADR 0005 and `API.md`.
+- [x] Logging, configuration, testing, evidence, and runbook standards. Evidence: ADR 0006.
+- [x] Explicitly excluded features. Evidence: ADR 0008.
 
 ### Gate
 
 Only an explicit instruction such as “approve the design and begin implementation” opens Phase 4.
+
+The owner recorded the D-01 through D-17 approvals on 2026-07-12 and 2026-07-13
+(`docs/research/phase-3-validation-log.md`, `docs/research/phase-3-decision-packet.md`)
+and subsequently instructed implementation to proceed on the approved baseline.
 
 ## Phase 4 — IDE strategy and possible IntelliJ IDEA migration
 
@@ -431,13 +437,13 @@ Kotlin is not introduced merely because IntelliJ supports it well. If research j
 
 After the design and IDE/toolchain decisions are approved:
 
-- [ ] Review every existing file against the research outputs.
-- [ ] Revalidate all provisional version selections and dependencies.
-- [ ] Review schema normalization, constraints, lock order, indexes, triggers, and fixture isolation.
-- [ ] Review API state, error, authentication, concurrency, and idempotency semantics.
+- [x] Review every existing file against the research outputs. Evidence: `docs/research/provisional-artifact-inventory.md` and the 2026-07-13 rebaseline changes.
+- [x] Revalidate all provisional version selections and dependencies. Evidence: `docs/research/phase-3-validation-log.md` §5; `pom.xml` now applies Boot 4.0.7 and the pgJDBC 42.7.13 security override.
+- [x] Review schema normalization, constraints, lock order, indexes, triggers, and fixture isolation. Evidence: rebaselined `V1__create_schema.sql` (approved states, `task_transition` ledger, scan-timestamp constraints) validated by `FlywayMigrationIT`.
+- [x] Review API state, error, authentication, concurrency, and idempotency semantics. Evidence: `API.md` aligned with ADRs 0004/0005 (RFC 9457 problems, replay semantics, block/resume recovery).
 - [ ] Review CI action versions, permissions, quality gates, and evidence retention.
-- [ ] Correct documentation that claims unverified or obsolete behavior.
-- [ ] Decide whether the unshared initial migration may be replaced before it becomes the real baseline; after application, migrations are immutable.
+- [x] Correct documentation that claims unverified or obsolete behavior. Evidence: README, `API.md`, and `docs/sql-diagnostics.md` status rebaseline of 2026-07-13.
+- [x] Decide whether the unshared initial migration may be replaced before it becomes the real baseline; after application, migrations are immutable. Evidence: D-14 approved; provisional V1 replaced by the approved baseline before any application.
 - [ ] Publish the approved implementation backlog.
 
 ## Phase 6 — Database foundation and SQL diagnostics
@@ -455,11 +461,11 @@ After the design and IDE/toolchain decisions are approved:
 
 ### Acceptance gate
 
-- [ ] A clean PostgreSQL database migrates without manual SQL.
-- [ ] Preproduction receives no demo credentials or fixtures.
-- [ ] Seed stock reconciles to movements.
-- [ ] Invalid relationships and movement mutations fail.
-- [ ] Diagnostics return documented, reproducible results.
+- [x] A clean PostgreSQL database migrates without manual SQL. Evidence: `docs/evidence/2026-07-13-phase6-maven-verify.md` (2 migrations applied to an empty digest-pinned PostgreSQL 17.10 container).
+- [ ] Preproduction receives no demo credentials or fixtures. Configuration separates `db/devdata`, but a preprod-profile test has not been executed.
+- [x] Seed stock reconciles to movements. Evidence: `FlywayMigrationIT.seededStockMatchesTheAppendOnlyMovementLedger`, same evidence record.
+- [x] Invalid relationships and movement mutations fail. Evidence: `FlywayMigrationIT` mutation/constraint tests for `stock_movement`, `task_transition`, and task/movement relationships.
+- [ ] Diagnostics return documented, reproducible results. The query pack is aligned to the approved schema; executing it against a running development database and recording results remains open.
 
 ## Phase 7 — HHT and administration REST API
 

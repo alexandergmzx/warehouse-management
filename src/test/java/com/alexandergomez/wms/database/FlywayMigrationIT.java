@@ -14,12 +14,21 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
 class FlywayMigrationIT {
 
+    /**
+     * Immutable image reference required by ADR 0002; keep in sync with compose.yaml.
+     * Digest validated against the local runtime on 2026-07-13.
+     */
+    private static final DockerImageName POSTGRES_IMAGE = DockerImageName
+            .parse("postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193")
+            .asCompatibleSubstituteFor("postgres");
+
     @Container
-    private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17.10-alpine")
+    private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(POSTGRES_IMAGE)
             .withDatabaseName("wms_test")
             .withUsername("wms_test")
             .withPassword("wms_test_password");
@@ -38,6 +47,7 @@ class FlywayMigrationIT {
         assertEquals(2, queryForLong("SELECT count(*) FROM flyway_schema_history WHERE success"));
         assertEquals(3, queryForLong("SELECT count(*) FROM customer_order"));
         assertEquals(5, queryForLong("SELECT count(*) FROM picking_task"));
+        assertEquals(11, queryForLong("SELECT count(*) FROM task_transition"));
         assertEquals(1, queryForLong("SELECT count(*) FROM stock_movement WHERE movement_type = 'PICK'"));
         assertEquals(3, queryForLong("""
             SELECT count(*)
@@ -70,6 +80,14 @@ class FlywayMigrationIT {
                 FROM app_user
                 WHERE username = 'picker01'
                   AND password_hash = crypt('picker123', password_hash)
+                """));
+        assertEquals(1, queryForLong("""
+                SELECT count(*)
+                FROM task_transition transition
+                JOIN picking_task task ON task.id = transition.picking_task_id
+                WHERE task.task_number = 'DEMO-1003-001-01'
+                  AND transition.previous_status = 'ARTICLE_CONFIRMED'
+                  AND transition.new_status = 'COMPLETED'
                 """));
             assertEquals(0, queryForLong("""
                 SELECT count(*)
@@ -125,6 +143,27 @@ class FlywayMigrationIT {
             SQLException deleteError = assertThrows(SQLException.class, () -> {
                 try (Statement statement = connection.createStatement()) {
                     statement.executeUpdate("DELETE FROM stock_movement WHERE id = 1");
+                }
+            });
+            assertEquals("55000", deleteError.getSQLState());
+        }
+    }
+
+    @Test
+    void taskTransitionLedgerRejectsUpdatesAndDeletes() throws SQLException {
+        try (Connection connection = POSTGRES.createConnection("")) {
+            SQLException updateError = assertThrows(SQLException.class, () -> {
+                try (Statement statement = connection.createStatement()) {
+                    statement.executeUpdate("UPDATE task_transition SET reason = 'tampered' WHERE id = 1");
+                }
+            });
+            assertEquals("55000", updateError.getSQLState());
+        }
+
+        try (Connection connection = POSTGRES.createConnection("")) {
+            SQLException deleteError = assertThrows(SQLException.class, () -> {
+                try (Statement statement = connection.createStatement()) {
+                    statement.executeUpdate("DELETE FROM task_transition WHERE id = 1");
                 }
             });
             assertEquals("55000", deleteError.getSQLState());

@@ -53,8 +53,8 @@ INSERT INTO customer_order (
 SELECT seed.order_number, seed.status, u.id, seed.created_at, seed.released_at
 FROM (
     VALUES
-        ('DEMO-1001', 'RELEASED', CURRENT_TIMESTAMP - INTERVAL '30 minutes', CURRENT_TIMESTAMP - INTERVAL '29 minutes'),
-        ('DEMO-1002', 'PICKING', CURRENT_TIMESTAMP - INTERVAL '4 hours', CURRENT_TIMESTAMP - INTERVAL '3 hours 59 minutes')
+        ('DEMO-1001', 'OPEN', CURRENT_TIMESTAMP - INTERVAL '30 minutes', CURRENT_TIMESTAMP - INTERVAL '29 minutes'),
+        ('DEMO-1002', 'IN_PROGRESS', CURRENT_TIMESTAMP - INTERVAL '4 hours', CURRENT_TIMESTAMP - INTERVAL '3 hours 59 minutes')
 ) AS seed(order_number, status, created_at, released_at)
 CROSS JOIN app_user u
 WHERE u.username = 'admin';
@@ -76,10 +76,10 @@ INSERT INTO order_line (
 SELECT o.id, seed.line_number, a.id, seed.requested_quantity, seed.picked_quantity, seed.status, o.created_at
 FROM (
     VALUES
-        ('DEMO-1001', 1, 'ART-001', 25, 0, 'ALLOCATED'),
-        ('DEMO-1001', 2, 'ART-003', 2, 0, 'ALLOCATED'),
-        ('DEMO-1002', 1, 'ART-004', 3, 0, 'PICKING'),
-        ('DEMO-1003', 1, 'ART-002', 2, 2, 'PICKED')
+        ('DEMO-1001', 1, 'ART-001', 25, 0, 'OPEN'),
+        ('DEMO-1001', 2, 'ART-003', 2, 0, 'OPEN'),
+        ('DEMO-1002', 1, 'ART-004', 3, 0, 'IN_PROGRESS'),
+        ('DEMO-1003', 1, 'ART-002', 2, 2, 'COMPLETED')
 ) AS seed(order_number, line_number, sku, requested_quantity, picked_quantity, status)
 JOIN customer_order o ON o.order_number = seed.order_number
 JOIN article a ON a.sku = seed.sku;
@@ -104,12 +104,12 @@ JOIN location l ON l.code = seed.location_code;
 INSERT INTO picking_task (
     task_number, order_line_id, task_sequence, article_id, source_location_id,
     requested_quantity, status, assigned_user_id, assigned_device_id,
-    created_at, assigned_at, last_transition_at
+    created_at, assigned_at, location_confirmed_at, last_transition_at
 )
 SELECT
     'DEMO-1002-001-01', ol.id, 1, ol.article_id, l.id,
     3, 'LOCATION_CONFIRMED', u.id, d.id,
-    o.created_at, CURRENT_TIMESTAMP - INTERVAL '3 hours', CURRENT_TIMESTAMP - INTERVAL '2 hours'
+    o.created_at, CURRENT_TIMESTAMP - INTERVAL '3 hours', CURRENT_TIMESTAMP - INTERVAL '2 hours', CURRENT_TIMESTAMP - INTERVAL '2 hours'
 FROM customer_order o
 JOIN order_line ol ON ol.order_id = o.id AND ol.line_number = 1
 JOIN location l ON l.code = 'B-01-02'
@@ -120,19 +120,45 @@ WHERE o.order_number = 'DEMO-1002';
 INSERT INTO picking_task (
     task_number, order_line_id, task_sequence, article_id, source_location_id,
     requested_quantity, confirmed_quantity, status, assigned_user_id, assigned_device_id,
-    confirmation_id, created_at, assigned_at, last_transition_at, completed_at
+    confirmation_id, created_at, assigned_at, location_confirmed_at, article_confirmed_at,
+    last_transition_at, completed_at
 )
 SELECT
     'DEMO-1003-001-01', ol.id, 1, ol.article_id, l.id,
     2, 2, 'COMPLETED', u.id, d.id,
     '2cfdb06f-0cd2-4ea5-995c-c167e3e391c4'::UUID,
-    o.created_at, o.released_at, o.completed_at, o.completed_at
+    o.created_at, o.released_at, o.completed_at - INTERVAL '1 minute', o.completed_at - INTERVAL '30 seconds',
+    o.completed_at, o.completed_at
 FROM customer_order o
 JOIN order_line ol ON ol.order_id = o.id AND ol.line_number = 1
 JOIN location l ON l.code = 'A-02-01'
 JOIN app_user u ON u.username = 'picker01'
 JOIN device d ON d.device_code = 'HHT-PI-01'
 WHERE o.order_number = 'DEMO-1003';
+
+INSERT INTO task_transition (
+    picking_task_id, previous_status, new_status, actor_user_id, device_id,
+    reason, occurred_at
+)
+SELECT t.id, transition.previous_status, transition.new_status, u.id, d.id,
+       transition.reason, transition.occurred_at
+FROM (
+    VALUES
+        ('DEMO-1001-001-01', NULL::VARCHAR, 'AVAILABLE', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '29 minutes'),
+        ('DEMO-1001-001-02', NULL::VARCHAR, 'AVAILABLE', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '29 minutes'),
+        ('DEMO-1001-002-01', NULL::VARCHAR, 'AVAILABLE', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '29 minutes'),
+        ('DEMO-1002-001-01', NULL::VARCHAR, 'AVAILABLE', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '3 hours 59 minutes'),
+        ('DEMO-1002-001-01', 'AVAILABLE', 'ASSIGNED', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '3 hours'),
+        ('DEMO-1002-001-01', 'ASSIGNED', 'LOCATION_CONFIRMED', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '2 hours'),
+        ('DEMO-1003-001-01', NULL::VARCHAR, 'AVAILABLE', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '23 hours 59 minutes'),
+        ('DEMO-1003-001-01', 'AVAILABLE', 'ASSIGNED', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '23 hours 30 minutes'),
+        ('DEMO-1003-001-01', 'ASSIGNED', 'LOCATION_CONFIRMED', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '23 hours 15 minutes'),
+        ('DEMO-1003-001-01', 'LOCATION_CONFIRMED', 'ARTICLE_CONFIRMED', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '23 hours 5 minutes'),
+        ('DEMO-1003-001-01', 'ARTICLE_CONFIRMED', 'COMPLETED', NULL::VARCHAR, CURRENT_TIMESTAMP - INTERVAL '23 hours')
+) AS transition(task_number, previous_status, new_status, reason, occurred_at)
+JOIN picking_task t ON t.task_number = transition.task_number
+LEFT JOIN app_user u ON u.username = 'picker01' AND transition.new_status <> 'AVAILABLE'
+LEFT JOIN device d ON d.device_code = 'HHT-PI-01' AND transition.new_status <> 'AVAILABLE';
 
 UPDATE stock s
 SET quantity = s.quantity - 2,

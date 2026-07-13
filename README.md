@@ -1,30 +1,32 @@
 # Miniature Warehouse Management System
 
-A Java 21/Spring Boot proof of concept focused on warehouse picking, SQL diagnostics, configuration discipline, test evidence, and supportability.
+A Java 21 / Spring Boot proof of concept focused on warehouse picking, SQL diagnostics, configuration discipline, test evidence, and supportability.
 
 ## Current status
 
-Phase 1 is scaffolded:
+**The Phase 3 design gate is approved (ADRs 0002–0008) and implementation is underway. The Phase 6 database foundation is implemented and validated; the Phase 7 HHT/admin REST API is the next deliverable.**
 
-- PostgreSQL schema and deterministic seed data managed by Flyway;
-- append-only stock movement ledger;
-- released, stuck, and completed demonstration orders;
-- migration/integrity integration test against real PostgreSQL;
-- HHT REST contract and phased implementation plan;
-- SQL diagnostic query pack;
-- development and preproduction configuration profiles;
-- GitHub Actions verification workflow.
+Validated on the approved baseline (evidence: `docs/evidence/2026-07-13-phase6-maven-verify.md`):
 
-The REST controllers and picking services described in the contract are phase 2 and are not implemented yet.
+- Flyway-owned PostgreSQL schema with the approved order/line/task states, constraints, and append-only `stock_movement` and `task_transition` ledgers;
+- deterministic development fixtures with released, stuck, and completed demonstration orders;
+- migration/integrity integration tests against the digest-pinned `postgres:17.10-alpine` image;
+- Checkstyle and SpotBugs quality gates in `mvn verify`.
 
-## Prerequisites
+Not yet implemented or still provisional:
 
-- 64-bit Windows 10 or 11 with virtualization enabled;
-- Java Development Kit 21;
-- Maven 3.9 or newer;
-- Docker Desktop with Docker Compose v2.
+- HHT/admin REST controllers, services, and authentication (Phase 7);
+- live dashboard and QR labels (Phase 8);
+- CI hardening, runbooks, and executed functional-test evidence (Phase 9);
+- MFC extension seam (Phase 10).
 
-Verify the tools from PowerShell:
+See `PLAN.md` for the remaining gates and progress rules.
+
+## Prerequisites — owner managed
+
+The approved baseline (ADR 0002) is Eclipse Temurin JDK 21, Maven 3.9.16, and Docker Desktop with Compose v2 on 64-bit Windows with virtualization enabled. The project owner installs and updates workstation tools.
+
+The project owner may collect version evidence from a new PowerShell session:
 
 ```powershell
 java -version
@@ -33,7 +35,9 @@ docker --version
 docker compose version
 ```
 
-## Start phase 1 locally
+## Start the development database and application
+
+Docker Compose is the approved development route (ADR 0002); the image is pinned by immutable digest. The application currently starts with the database foundation only — REST endpoints arrive with Phase 7. Record first-start evidence per ADR 0006.
 
 1. Optionally copy `.env.example` to `.env` and change development-only database values. Both Docker Compose and the Spring `dev` profile read this file.
 2. Start PostgreSQL:
@@ -65,6 +69,8 @@ Development seed users are `admin` / `admin123` and `picker01` / `picker123`. Th
 
 ## Build and test
 
+This is the validated verification path (see `docs/evidence/2026-07-13-phase6-maven-verify.md`).
+
 Unit tests run without integration tests:
 
 ```powershell
@@ -81,7 +87,7 @@ A working Docker runtime is required for `mvn verify`.
 
 ## Reset the development database
 
-This permanently deletes local WMS database data and reruns all migrations on the next start:
+**This is destructive.** It permanently deletes local WMS database data and reruns all migrations on the next start:
 
 ```powershell
 docker compose down -v
@@ -111,17 +117,20 @@ Local secrets belong in `.env` or process environment variables, never committed
 
 ## Docker Compose versus native PostgreSQL on Windows
 
-Docker Compose is recommended for this PoC because it pins the PostgreSQL major/image version, creates the database consistently, keeps extensions and data isolated, and makes reset/integration testing reproducible. The tradeoff is Docker Desktop's installation size, memory use, virtualization dependency, and possible corporate licensing/policy restrictions.
+Docker Compose is the approved primary route (ADR 0002, decision D-02) because it pins the PostgreSQL image by immutable digest, creates the database consistently, keeps extensions and data isolated, and makes reset/integration testing reproducible. The tradeoff is Docker Desktop's installation size, memory use, virtualization dependency, and possible corporate licensing/policy restrictions.
 
-A native PostgreSQL 17 installation can use the same database name, user, password, and port. It starts faster and avoids a VM layer, but Windows service setup, `pg_hba.conf`, extension availability, upgrades, data cleanup, and troubleshooting become machine-specific. For a job-application demonstration, the reproducibility of Docker is more valuable, so native installation is an exception rather than the primary path.
+A native PostgreSQL 17 installation remains the documented fallback. It starts faster and avoids a VM layer, but Windows service setup, `pg_hba.conf`, extension availability, upgrades, data cleanup, and troubleshooting become machine-specific.
 
 ## Key documents
 
 - `PLAN.md` — phased delivery plan and acceptance gates.
-- `API.md` — explicit HHT/admin REST contract.
+- `API.md` — accepted HHT/admin REST contract (implementation is Phase 7).
 - `docs/sql-diagnostics.md` — stuck-task, ledger-reconciliation, and order-trace SQL.
 - `docs/architecture.md` — module boundaries, transactions, and the MFC seam.
-- `docs/decisions/0001-build-and-database.md` — Maven/PostgreSQL decision record.
+- `docs/decisions/` — ADRs 0001–0008; ADR 0002 records the approved technology baseline.
+- `docs/evidence/` — retained runtime and test evidence per build/configuration identifier.
+- `docs/functional-test-specification.md` and `docs/requirements-traceability.md` — numbered cases and requirement mapping.
+- `docs/research/` — Phase 2/3 research, decision packet, and validation log.
 
 ## Repository layout
 
