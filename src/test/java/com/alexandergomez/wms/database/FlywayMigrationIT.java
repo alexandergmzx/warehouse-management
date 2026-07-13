@@ -75,11 +75,10 @@ class FlywayMigrationIT {
               AND t.status = 'COMPLETED'
               AND m.quantity_delta = -2
             """));
-        assertEquals(1, queryForLong("""
+        assertEquals(2, queryForLong("""
                 SELECT count(*)
                 FROM app_user
-                WHERE username = 'picker01'
-                  AND password_hash = crypt('picker123', password_hash)
+                WHERE password_hash LIKE '$argon2id$%'
                 """));
         assertEquals(1, queryForLong("""
                 SELECT count(*)

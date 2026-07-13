@@ -40,8 +40,16 @@ stored hashes (`upgradeEncoding` can trigger a rehash on next login).
 The ~250 ms per-workstation measurement referenced above is deferred to a
 production-hardening step; the Spring v5.8 defaults are accepted for the LAN
 PoC. `password_hash` widens from `VARCHAR(100)` to `VARCHAR(255)` to hold the
-~97-character encoded value with headroom. `pgcrypto` may remain (harmless) or
-be dropped, since PostgreSQL 17 provides `gen_random_uuid()` in core.
+~97-character encoded value with headroom. `pgcrypto` is dropped: the demo
+`crypt()`/`gen_salt()` fixtures are gone and PostgreSQL 17 provides
+`gen_random_uuid()` in core, so the extension is no longer referenced.
+
+Spring Security's `Argon2PasswordEncoder` delegates to BouncyCastle's
+`Argon2BytesGenerator`. Spring Boot 4 does not manage a BouncyCastle version, so
+the provider is pinned explicitly to `org.bouncycastle:bcprov-jdk18on:1.85`, the
+latest stable patch level for the cryptographic provider (Maven Central metadata
+accessed 2026-07-13). Track this pin as a security dependency and prefer the
+current patched release over an older frozen one.
 
 Sources (accessed 2026-07-13):
 [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html);

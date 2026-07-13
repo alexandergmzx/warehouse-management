@@ -8,7 +8,7 @@
 
 The pre-research scaffold was reviewed in the Phase 5 rebaseline. The Maven build, schema baseline, development fixtures, and migration tests now reflect the approved design (ADRs 0002–0008) and pass `mvn verify` on the digest-pinned PostgreSQL 17.10 image (`docs/evidence/2026-07-13-phase6-maven-verify.md`). The one open Phase 6 item is executing the SQL diagnostic pack against a running dev database and recording results.
 
-**Next steps toward the MVP** are the vertical slices in *Phase 7 → Execution plan (approved build order)* below, which cover functional cases FT-01 through FT-14. The MVP as a whole is defined by FT-01 through FT-19 in `docs/functional-test-specification.md`: Phase 7 delivers the API cases, Phase 8 the label/dashboard cases (FT-17, FT-18), Phase 9 the configuration/observability cases and retained evidence (FT-15, FT-16), and Phase 10 plus a scope review close FT-19. Artifacts belonging to phases not yet implemented and evidenced remain **provisional drafts**.
+**Next steps toward the MVP** are the vertical slices in *Phase 7 → Execution plan (approved build order)* below, which cover functional cases FT-01 through FT-14. The Step 0 prerequisite (Argon2id demo credentials) is complete and evidenced (`docs/evidence/2026-07-13-phase7-step0-argon2id.md`); Step 1 (persistence layer) is the next slice. The MVP as a whole is defined by FT-01 through FT-19 in `docs/functional-test-specification.md`: Phase 7 delivers the API cases, Phase 8 the label/dashboard cases (FT-17, FT-18), Phase 9 the configuration/observability cases and retained evidence (FT-15, FT-16), and Phase 10 plus a scope review close FT-19. Artifacts belonging to phases not yet implemented and evidenced remain **provisional drafts**.
 
 ## Purpose
 
@@ -496,13 +496,14 @@ and retained evidence, so acceptance accumulates continuously. Java code today
 is only `WarehouseManagementApplication` and `WmsProperties`; everything below
 is new. FT references are cases in `docs/functional-test-specification.md`.
 
-0. **Prerequisite — regenerate demo credentials for Argon2id** (revises the
-   Phase 6 fixture; see ADR 0005 "Implementation refinement 2026-07-13").
-   - [ ] Add the app `PasswordEncoder` bean as `Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()`.
-   - [ ] Precompute Argon2id PHC hashes for `admin123` and `picker123` once (a throwaway JUnit test or dev `CommandLineRunner` that prints `encoder.encode(...)`), then paste the two literal strings into `db/devdata/V1_1__seed_demo_data.sql`, replacing the `crypt('…', gen_salt('bf', 10))` calls.
-   - [ ] Widen `app_user.password_hash` to `VARCHAR(255)`. Sub-decision at execution time: because no retained/shared database exists yet (D-14) and V1 has only ever run against disposable Testcontainers, folding this width change and the seed edit into V1 is still defensible; otherwise add a `V2` migration. Recommendation: fold into V1 now, before any durable dev database is created, after which V1 is immutable.
-   - [ ] Replace the `crypt('picker123', password_hash)` assertion in `FlywayMigrationIT` with a format check (e.g. hash starts with `$argon2id$`); real login verification moves to the Java-level FT-01 test.
-   - [ ] `pgcrypto` may stay or be dropped (`gen_random_uuid()` is core in PG17).
+0. **Prerequisite — regenerate demo credentials for Argon2id** — DONE
+   2026-07-13; evidence `docs/evidence/2026-07-13-phase7-step0-argon2id.md`
+   (revises the Phase 6 fixture; see ADR 0005 "Implementation refinement 2026-07-13").
+   - [x] Add the app `PasswordEncoder` bean as `Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()`. Added `configuration/PasswordEncoderConfiguration`; `bcprov-jdk18on:1.85` pinned in `pom.xml` because Boot 4 does not manage BouncyCastle.
+   - [x] Precompute Argon2id PHC hashes for `admin123` and `picker123` once, then paste the two literal strings into `db/devdata/V1_1__seed_demo_data.sql`, replacing the `crypt('…', gen_salt('bf', 10))` calls. Generated with a throwaway test (since deleted); ADR 0005 parameters confirmed by the PHC header `m=16384,t=2,p=1`.
+   - [x] Widen `app_user.password_hash` to `VARCHAR(255)`. **Resolved: folded into V1** (plan's recommended option) — no retained/shared database exists (D-14); V1 has only run against disposable Testcontainers, so V1 was edited before any durable dev database exists.
+   - [x] Replace the `crypt('picker123', password_hash)` assertion in `FlywayMigrationIT` with a format check; real login verification moves to the Java-level FT-01 test. Now asserts both seeded users store `$argon2id$`-prefixed hashes.
+   - [x] `pgcrypto` — **Resolved: dropped.** After removing the `crypt()`/`gen_salt()` fixtures it is unused (`gen_random_uuid()` is core in PG17); the clean migration in the evidence run confirms nothing else depends on it.
 1. **Persistence layer.** JPA entities + Spring Data repositories mapping the existing schema, Hibernate in `validate`-only mode (never create/update). Add `JdbcTemplate`/named-parameter scaffolding for the locking, allocation, FIFO-claim, and reconciliation queries per ADR 0003. No behavior yet.
 2. **Auth slice** (FT-01, FT-03, FT-14). Login/logout, opaque token generation (≥256 bits, store SHA-256 hash only, bound to user/device, 8 h absolute expiry), the bearer-token filter, and the global RFC 9457 `application/problem+json` handler with the stable code catalogue. Unblocks every later endpoint.
 3. **Picking happy path** (FT-06, FT-08). `GET /hht/tasks/next` (atomic claim via `FOR UPDATE OF task SKIP LOCKED`, full FIFO order), scan-location, scan-article, and the confirm transaction that locks task then stock and atomically updates task, line, order, stock, plus one `stock_movement` and one `task_transition`.

@@ -53,6 +53,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <!--
+            Argon2PasswordEncoder delegates to BouncyCastle's Argon2BytesGenerator.
+            Spring Boot 4 does not manage a BouncyCastle version, so it is pinned
+            explicitly per ADR 0005. Latest stable patch level for the crypto provider.
+        -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.85</version>
+        </dependency>
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>

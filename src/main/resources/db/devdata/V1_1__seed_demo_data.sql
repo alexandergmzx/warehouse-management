@@ -1,9 +1,12 @@
 -- Development/demo credentials only. This location is excluded from preprod.
 -- admin / admin123, picker01 / picker123
+-- Password hashes are precomputed Argon2id PHC strings (Spring Security v5.8
+-- defaults, ADR 0005). Regenerate with the application PasswordEncoder if the
+-- demo credentials change; never store production secrets here.
 INSERT INTO app_user (username, password_hash, role)
 VALUES
-    ('admin', crypt('admin123', gen_salt('bf', 10)), 'ADMIN'),
-    ('picker01', crypt('picker123', gen_salt('bf', 10)), 'PICKER');
+    ('admin', '$argon2id$v=19$m=16384,t=2,p=1$BzCpywHup+tXEWgsjbCTLA$/EH87WnYmSicqLmm5AAbmxqNFr673/blx+CENB/xBls', 'ADMIN'),
+    ('picker01', '$argon2id$v=19$m=16384,t=2,p=1$qMN/LNVc05GFcrZg6YDL/A$E25wwvzRUDDooEYhkvJJvjXSQEuVCs+yANQHvbR6yHg', 'PICKER');
 
 INSERT INTO device (device_code, description)
 VALUES ('HHT-PI-01', 'Raspberry Pi handheld scanner 01');
