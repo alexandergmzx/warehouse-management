@@ -2,11 +2,13 @@
 
 ## Plan status
 
-**Current stage:** implementation — Phase 5 rebaseline and Phase 6 database foundation  
-**Implementation status:** authorized by the project owner after the Phase 3 design approvals (ADRs 0002–0008); Phases 7–10 remain gated  
+**Current stage:** implementation — Phase 6 complete; **Phase 7 (HHT + admin REST API) is the active next step**  
+**Implementation status:** authorized by the project owner after the Phase 3 design approvals (ADRs 0002–0008); Phases 8–10 remain gated  
 **Tool installation owner:** project owner; assistants must not install or configure system tools unless explicitly asked later
 
-The pre-research scaffold was reviewed in the Phase 5 rebaseline. The Maven build, schema baseline, development fixtures, and migration tests now reflect the approved design (ADRs 0002–0008). Artifacts belonging to later phases — REST controllers, services, dashboard, labels, CI hardening, and runbooks — remain **provisional drafts** until their phase is implemented and evidenced.
+The pre-research scaffold was reviewed in the Phase 5 rebaseline. The Maven build, schema baseline, development fixtures, and migration tests now reflect the approved design (ADRs 0002–0008) and pass `mvn verify` on the digest-pinned PostgreSQL 17.10 image (`docs/evidence/2026-07-13-phase6-maven-verify.md`). The one open Phase 6 item is executing the SQL diagnostic pack against a running dev database and recording results.
+
+**Next steps toward the MVP** are the vertical slices in *Phase 7 → Execution plan (approved build order)* below, which cover functional cases FT-01 through FT-14. The MVP as a whole is defined by FT-01 through FT-19 in `docs/functional-test-specification.md`: Phase 7 delivers the API cases, Phase 8 the label/dashboard cases (FT-17, FT-18), Phase 9 the configuration/observability cases and retained evidence (FT-15, FT-16), and Phase 10 plus a scope review close FT-19. Artifacts belonging to phases not yet implemented and evidenced remain **provisional drafts**.
 
 ## Purpose
 
@@ -486,6 +488,30 @@ After the design and IDE/toolchain decisions are approved:
 - [ ] One successful confirmation creates exactly one movement.
 - [ ] Retrying a confirmation cannot decrement stock twice.
 - [ ] Orders complete only when all approved task requirements are satisfied.
+
+### Execution plan (approved build order)
+
+Build as thin vertical slices, each ending with green Failsafe/Surefire tests
+and retained evidence, so acceptance accumulates continuously. Java code today
+is only `WarehouseManagementApplication` and `WmsProperties`; everything below
+is new. FT references are cases in `docs/functional-test-specification.md`.
+
+0. **Prerequisite — regenerate demo credentials for Argon2id** (revises the
+   Phase 6 fixture; see ADR 0005 "Implementation refinement 2026-07-13").
+   - [ ] Add the app `PasswordEncoder` bean as `Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()`.
+   - [ ] Precompute Argon2id PHC hashes for `admin123` and `picker123` once (a throwaway JUnit test or dev `CommandLineRunner` that prints `encoder.encode(...)`), then paste the two literal strings into `db/devdata/V1_1__seed_demo_data.sql`, replacing the `crypt('…', gen_salt('bf', 10))` calls.
+   - [ ] Widen `app_user.password_hash` to `VARCHAR(255)`. Sub-decision at execution time: because no retained/shared database exists yet (D-14) and V1 has only ever run against disposable Testcontainers, folding this width change and the seed edit into V1 is still defensible; otherwise add a `V2` migration. Recommendation: fold into V1 now, before any durable dev database is created, after which V1 is immutable.
+   - [ ] Replace the `crypt('picker123', password_hash)` assertion in `FlywayMigrationIT` with a format check (e.g. hash starts with `$argon2id$`); real login verification moves to the Java-level FT-01 test.
+   - [ ] `pgcrypto` may stay or be dropped (`gen_random_uuid()` is core in PG17).
+1. **Persistence layer.** JPA entities + Spring Data repositories mapping the existing schema, Hibernate in `validate`-only mode (never create/update). Add `JdbcTemplate`/named-parameter scaffolding for the locking, allocation, FIFO-claim, and reconciliation queries per ADR 0003. No behavior yet.
+2. **Auth slice** (FT-01, FT-03, FT-14). Login/logout, opaque token generation (≥256 bits, store SHA-256 hash only, bound to user/device, 8 h absolute expiry), the bearer-token filter, and the global RFC 9457 `application/problem+json` handler with the stable code catalogue. Unblocks every later endpoint.
+3. **Picking happy path** (FT-06, FT-08). `GET /hht/tasks/next` (atomic claim via `FOR UPDATE OF task SKIP LOCKED`, full FIFO order), scan-location, scan-article, and the confirm transaction that locks task then stock and atomically updates task, line, order, stock, plus one `stock_movement` and one `task_transition`.
+4. **Picking negative / concurrency / idempotency** (FT-04, FT-05, FT-07, FT-12). Wrong location/article, quantity mismatch (exact-quantity rule), two users racing one task, one-active-task-per-user/device, and confirmation-UUID reuse (`409 CONFIRMATION_ID_REUSED`). This is the core testing-competence evidence.
+5. **Admin endpoints** (FT-02, FT-09, FT-10, FT-13). Order creation with atomic multi-bin allocation (availability = `stock.quantity − Σ unfinished task quantity`, ascending `(article_id, location_id)` lock order), block/resume recovery with audited reason, order/task reads, and stock adjustments.
+
+Each slice: write the Failsafe integration test(s) for its FT cases against the
+digest-pinned PostgreSQL Testcontainer, keep Checkstyle/SpotBugs green, and
+record evidence under a build/configuration ID in `docs/evidence/`.
 
 ## Phase 8 — Live dashboard and QR labels
 
