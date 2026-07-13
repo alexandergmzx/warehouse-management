@@ -1,39 +1,20 @@
-# Miniature WMS workspace instructions
+# Copilot instructions
 
-Read `PLAN.md` and `CLAUDE.md` before proposing or making changes. `PLAN.md` is the authoritative roadmap; `CLAUDE.md` contains the full repository-wide working rules and must remain aligned with this file.
+**Full rules live in [`CLAUDE.md`](../CLAUDE.md) at the repository root — it is
+the single canonical source for every assistant working in this repository
+(Claude, Copilot, IntelliJ, VS Code, or any other editor). Read `CLAUDE.md`,
+then read [`PLAN.md`](../PLAN.md) for the current phase, gate, and
+authorization state, before proposing or making changes.**
 
-## Current project mode
+Do not add or duplicate rules in this file — edit `CLAUDE.md` instead so every
+assistant stays in sync. The subset below is repeated only as a safety net in
+case this file is the only context a Copilot request has access to.
 
-The project is in research and user-managed workstation preparation.
+## Non-negotiable guardrails
 
-- Existing source code, migrations, configuration, API documentation, CI, and README content are provisional drafts, not approved implementation.
-- Do not install or download Java, Maven, Docker, PostgreSQL, IntelliJ plugins, VS Code extensions, or other system tools. The project owner manages installation.
-- Do not run builds, servers, containers, migrations, or integration tests unless explicitly requested.
-- Do not implement, refactor, delete, or extend provisional application artifacts before the design checkpoint is explicitly approved.
-- Research, compare, review, and plan first. Prefer official and authoritative sources, record access dates, and distinguish findings from decisions.
-- Stop at each approval gate in `PLAN.md`.
-
-## Confirmed workflow baseline
-
-- Exact-quantity confirmations only; partial picks are rejected initially.
-- No HHT skip operation initially; blocked work requires administrative recovery.
-- Global FIFO by order creation, order line, and task sequence.
-- Atomic claims with at most one active task per user/device.
-- Multi-bin lines split by ascending location code.
-- Stock decrements only on successful confirmation.
-- Stock, task, line, order, and movement changes commit atomically.
-- `stock_movement` is append-only and records every stock change.
-- The Raspberry Pi HHT remains a separate LAN REST client.
-- The MFC deliverable is an extension seam only, not TCP implementation.
-
-## Portability and quality rules
-
-- Maven and Git are the sources of truth; keep the repository usable from IntelliJ IDEA and VS Code.
-- IntelliJ migration imports the existing Maven project and must not create a duplicate project or IDE-dependent build.
-- Keep `.idea/`, local run configurations, machine paths, and secrets out of version control unless explicitly reviewed and approved.
-- Do not introduce Kotlin without an ADR, interoperation rules, and Maven/CI verification.
-- Flyway owns the schema; Hibernate may validate only.
-- Never edit an applied migration. Decide explicitly how to treat provisional migrations before approving the baseline.
-- Keep common schema migrations separate from development fixtures and known demo credentials.
-- Tests, diagnostics, structured logs, configuration matrices, evidence, and runbooks are first-class deliverables.
-- Do not mark work complete because files exist or compilation succeeds; require the acceptance evidence defined in `PLAN.md`.
+- The project owner installs and manages all system tools (Java, Maven, Docker, PostgreSQL, IDE plugins/extensions). Do not install or download them.
+- Do not implement, refactor, delete, or extend an artifact belonging to a phase that `PLAN.md` has not marked implemented and evidenced.
+- Never edit an applied Flyway migration; add a new versioned migration instead.
+- Every stock-changing transaction must update `stock` and append exactly one matching `stock_movement` row in the same transaction; `stock_movement` and `task_transition` are append-only.
+- A compiling file or a passing build is not by itself acceptance evidence for a phase.
+- Ask before crossing a gate recorded in `PLAN.md` or altering a confirmed workflow rule in `CLAUDE.md`.
