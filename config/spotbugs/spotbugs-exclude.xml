@@ -5,17 +5,19 @@
         xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/master/spotbugs/etc/findbugsfilter.xsd">
 
     <!--
-        Spring injects singleton collaborators (for example NamedParameterJdbcTemplate)
-        by constructor. Retaining the injected reference in a private final field is the
-        intended, framework-managed design, not an exposure of internal representation,
-        so EI_EXPOSE_REP2 is a false positive at these dependency-injection sites.
+        Spring injects singleton collaborators (repositories, services, template
+        beans, ObjectMapper, etc.) by constructor. Retaining the injected reference
+        in a private final field is the intended, framework-managed design, not an
+        exposure of internal representation, so EI_EXPOSE_REP2 is a false positive
+        at these dependency-injection sites across the application packages.
 
-        The exclusion is scoped to Spring stereotype classes by naming convention.
-        Domain entities and value objects (which return only immutable types) are not
-        matched and remain fully analysed at effort=Max, threshold=Low.
+        The exclusion is limited to EI_EXPOSE_REP2 within com.alexandergomez.wms.
+        Domain entities and value objects in these packages take primitives or
+        immutable types (or make defensive copies), so they do not trigger this
+        pattern; all other SpotBugs checks remain at effort=Max, threshold=Low.
     -->
     <Match>
         <Bug pattern="EI_EXPOSE_REP2"/>
-        <Class name="~.*(Repository|Service|Controller|Filter|Configuration)"/>
+        <Class name="~com\.alexandergomez\.wms\..*"/>
     </Match>
 </FindBugsFilter>

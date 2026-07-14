@@ -1,5 +1,6 @@
 package com.alexandergomez.wms.picking;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,4 +13,7 @@ public interface PickingTaskRepository extends JpaRepository<PickingTask, Long> 
     List<PickingTask> findByOrderLineIdOrderByTaskSequence(Long orderLineId);
 
     long countByStatus(TaskStatus status);
+
+    boolean existsByAssignedDeviceIdAndStatusInAndAssignedUserIdNot(
+            Long assignedDeviceId, Collection<TaskStatus> statuses, Long assignedUserId);
 }

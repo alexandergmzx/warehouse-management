@@ -82,4 +82,21 @@ public class AuthToken {
     public OffsetDateTime getRevokedAt() {
         return revokedAt;
     }
+
+    /**
+     * Creates a new token record. {@code id} and {@code created_at} are assigned
+     * by Hibernate and the database respectively.
+     */
+    public static AuthToken issue(String tokenHash, Long userId, Long deviceId, OffsetDateTime expiresAt) {
+        AuthToken token = new AuthToken();
+        token.tokenHash = tokenHash;
+        token.userId = userId;
+        token.deviceId = deviceId;
+        token.expiresAt = expiresAt;
+        return token;
+    }
+
+    public void revoke(OffsetDateTime when) {
+        this.revokedAt = when;
+    }
 }
