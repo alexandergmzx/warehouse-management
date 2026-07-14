@@ -95,4 +95,26 @@ public class TaskTransition {
     public OffsetDateTime getOccurredAt() {
         return occurredAt;
     }
+
+    /**
+     * Creates one append-only audit row. {@code correlationId} and
+     * {@code occurredAt} are always supplied by the caller (never left to the
+     * database default) so they match the same request and instant as the
+     * task-state change they record.
+     */
+    public static TaskTransition record(Long pickingTaskId, TaskStatus previousStatus, TaskStatus newStatus,
+            Long actorUserId, Long deviceId, String reason, UUID correlationId, UUID confirmationId,
+            OffsetDateTime occurredAt) {
+        TaskTransition transition = new TaskTransition();
+        transition.pickingTaskId = pickingTaskId;
+        transition.previousStatus = previousStatus;
+        transition.newStatus = newStatus;
+        transition.actorUserId = actorUserId;
+        transition.deviceId = deviceId;
+        transition.reason = reason;
+        transition.correlationId = correlationId;
+        transition.confirmationId = confirmationId;
+        transition.occurredAt = occurredAt;
+        return transition;
+    }
 }

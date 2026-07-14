@@ -79,4 +79,15 @@ public class CustomerOrder {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void markInProgress() {
+        if (this.status == OrderStatus.OPEN) {
+            this.status = OrderStatus.IN_PROGRESS;
+        }
+    }
+
+    public void markCompleted(OffsetDateTime when) {
+        this.status = OrderStatus.COMPLETED;
+        this.completedAt = when;
+    }
 }

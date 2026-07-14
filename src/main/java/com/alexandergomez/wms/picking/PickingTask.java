@@ -167,4 +167,28 @@ public class PickingTask {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void assignTo(Long userId, Long deviceId, OffsetDateTime when) {
+        this.status = TaskStatus.ASSIGNED;
+        this.assignedUserId = userId;
+        this.assignedDeviceId = deviceId;
+        this.assignedAt = when;
+    }
+
+    public void confirmLocation(OffsetDateTime when) {
+        this.status = TaskStatus.LOCATION_CONFIRMED;
+        this.locationConfirmedAt = when;
+    }
+
+    public void confirmArticle(OffsetDateTime when) {
+        this.status = TaskStatus.ARTICLE_CONFIRMED;
+        this.articleConfirmedAt = when;
+    }
+
+    public void complete(int confirmedQuantity, UUID confirmationId, OffsetDateTime when) {
+        this.status = TaskStatus.COMPLETED;
+        this.confirmedQuantity = confirmedQuantity;
+        this.confirmationId = confirmationId;
+        this.completedAt = when;
+    }
 }

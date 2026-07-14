@@ -54,6 +54,17 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         return value instanceof String correlationId ? correlationId : UUID.randomUUID().toString();
     }
 
+    /**
+     * Returns the correlation identifier for the request executing on the
+     * current thread, read from MDC. For use in service-layer code that has no
+     * direct access to the {@link HttpServletRequest} (for example, when
+     * stamping an audit or movement row with the request that caused it).
+     */
+    public static String currentCorrelationId() {
+        String value = MDC.get(MDC_KEY);
+        return value != null ? value : UUID.randomUUID().toString();
+    }
+
     private static String resolve(String candidate) {
         if (candidate == null || candidate.isBlank()) {
             return UUID.randomUUID().toString();

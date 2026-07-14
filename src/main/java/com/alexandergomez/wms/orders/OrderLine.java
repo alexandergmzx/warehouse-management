@@ -86,4 +86,18 @@ public class OrderLine {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void markInProgress() {
+        if (this.status == OrderLineStatus.OPEN) {
+            this.status = OrderLineStatus.IN_PROGRESS;
+        }
+    }
+
+    public void addPickedQuantity(int amount) {
+        this.pickedQuantity += amount;
+    }
+
+    public void markCompleted() {
+        this.status = OrderLineStatus.COMPLETED;
+    }
 }

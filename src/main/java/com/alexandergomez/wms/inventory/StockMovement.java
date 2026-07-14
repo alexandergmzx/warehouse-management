@@ -123,4 +123,30 @@ public class StockMovement {
     public OffsetDateTime getOccurredAt() {
         return occurredAt;
     }
+
+    /**
+     * Creates one append-only {@code PICK} ledger row. {@code resultingQuantity}
+     * must equal the stock row's quantity after the caller has already applied
+     * the decrement in the same transaction (the database trigger validates
+     * this before the insert is allowed to commit).
+     */
+    public static StockMovement pick(Long articleId, Long locationId, int quantity, int resultingQuantity,
+            Long orderId, Long orderLineId, Long pickingTaskId, Long performedByUserId, Long deviceId,
+            String reason, UUID correlationId, OffsetDateTime occurredAt) {
+        StockMovement movement = new StockMovement();
+        movement.movementType = MovementType.PICK;
+        movement.articleId = articleId;
+        movement.locationId = locationId;
+        movement.quantityDelta = -quantity;
+        movement.resultingQuantity = resultingQuantity;
+        movement.orderId = orderId;
+        movement.orderLineId = orderLineId;
+        movement.pickingTaskId = pickingTaskId;
+        movement.performedByUserId = performedByUserId;
+        movement.deviceId = deviceId;
+        movement.reason = reason;
+        movement.correlationId = correlationId;
+        movement.occurredAt = occurredAt;
+        return movement;
+    }
 }

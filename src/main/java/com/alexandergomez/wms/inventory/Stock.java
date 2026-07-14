@@ -57,4 +57,14 @@ public class Stock {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    /**
+     * Applies a pick decrement under an already-held pessimistic lock on this
+     * row. The caller is responsible for verifying sufficient quantity first.
+     */
+    public void decrease(int amount, OffsetDateTime when) {
+        this.quantity -= amount;
+        this.version += 1;
+        this.updatedAt = when;
+    }
 }
