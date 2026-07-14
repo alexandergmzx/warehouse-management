@@ -63,8 +63,28 @@ public class Stock {
      * row. The caller is responsible for verifying sufficient quantity first.
      */
     public void decrease(int amount, OffsetDateTime when) {
-        this.quantity -= amount;
+        applyDelta(-amount, when);
+    }
+
+    /**
+     * Applies a signed delta (positive or negative) under an already-held
+     * pessimistic lock. The caller is responsible for verifying the resulting
+     * quantity is non-negative first.
+     */
+    public void applyDelta(int delta, OffsetDateTime when) {
+        this.quantity += delta;
         this.version += 1;
         this.updatedAt = when;
+    }
+
+    /** A freshly stocked bin (e.g. its first-ever adjustment), starting at zero. */
+    public static Stock initial(Long articleId, Long locationId, OffsetDateTime when) {
+        Stock stock = new Stock();
+        stock.articleId = articleId;
+        stock.locationId = locationId;
+        stock.quantity = 0;
+        stock.version = 0L;
+        stock.updatedAt = when;
+        return stock;
     }
 }

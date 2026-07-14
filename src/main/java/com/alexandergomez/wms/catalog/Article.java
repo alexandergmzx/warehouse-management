@@ -69,4 +69,15 @@ public class Article {
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
+
+    /** The QR payload is always server-derived as {@code ART:<sku>} (API.md). */
+    public static Article create(String sku, String description) {
+        Article article = new Article();
+        article.sku = sku;
+        article.description = description;
+        article.qrValue = "ART:" + sku;
+        article.unitOfMeasure = "EA";
+        article.active = true;
+        return article;
+    }
 }

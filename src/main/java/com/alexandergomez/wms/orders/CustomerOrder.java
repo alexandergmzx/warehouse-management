@@ -90,4 +90,18 @@ public class CustomerOrder {
         this.status = OrderStatus.COMPLETED;
         this.completedAt = when;
     }
+
+    /**
+     * Creates an order already released and claimable: order creation locks
+     * candidate stock, allocates every line, and releases the order atomically
+     * (architecture.md), so there is no separate unreleased state to model.
+     */
+    public static CustomerOrder open(String orderNumber, Long createdByUserId, OffsetDateTime releasedAt) {
+        CustomerOrder order = new CustomerOrder();
+        order.orderNumber = orderNumber;
+        order.status = OrderStatus.OPEN;
+        order.createdByUserId = createdByUserId;
+        order.releasedAt = releasedAt;
+        return order;
+    }
 }

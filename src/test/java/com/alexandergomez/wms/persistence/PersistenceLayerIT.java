@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
@@ -26,6 +27,7 @@ import com.alexandergomez.wms.identity.DeviceRepository;
 import com.alexandergomez.wms.identity.UserRole;
 import com.alexandergomez.wms.inventory.MovementType;
 import com.alexandergomez.wms.inventory.StockJdbcRepository;
+import com.alexandergomez.wms.inventory.StockLedgerDiscrepancy;
 import com.alexandergomez.wms.inventory.StockMovement;
 import com.alexandergomez.wms.inventory.StockMovementRepository;
 import com.alexandergomez.wms.inventory.StockRepository;
@@ -93,6 +95,8 @@ class PersistenceLayerIT {
     private TaskTransitionRepository taskTransitions;
     @Autowired
     private StockJdbcRepository stockJdbc;
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Test
     void repositoriesReadSeedMasterData() {
@@ -169,6 +173,25 @@ class PersistenceLayerIT {
     @Test
     void stockReconciliationIsCleanForSeedFixtures() {
         assertTrue(stockJdbc.reconcileStockAgainstMovements().isEmpty());
+    }
+
+    @Test
+    void reconciliationDetectsAnInjectedDiscrepancy() {
+        // Directly corrupt one stock row's quantity, bypassing the append-only
+        // movement ledger entirely, simulating real-world drift the diagnostic
+        // must catch (FT-13).
+        long articleId = articles.findBySku("ART-003").orElseThrow().getId();
+        long locationId = locationId("B-01-01");
+        jdbc.update("UPDATE stock SET quantity = quantity + 3 WHERE article_id = ? AND location_id = ?",
+                articleId, locationId);
+
+        List<StockLedgerDiscrepancy> discrepancies = stockJdbc.reconcileStockAgainstMovements();
+        assertEquals(1, discrepancies.size());
+        StockLedgerDiscrepancy discrepancy = discrepancies.get(0);
+        assertEquals(articleId, discrepancy.articleId());
+        assertEquals(locationId, discrepancy.locationId());
+        assertEquals(11, discrepancy.stockQuantity());
+        assertEquals(8, discrepancy.ledgerQuantity());
     }
 
     private long locationId(String code) {

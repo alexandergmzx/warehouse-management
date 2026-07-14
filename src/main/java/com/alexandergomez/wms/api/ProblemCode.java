@@ -32,6 +32,15 @@ public enum ProblemCode {
     CONFIRMATION_ID_REUSED(HttpStatus.CONFLICT, "Confirmation ID reused"),
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "Insufficient stock"),
     QUANTITY_MISMATCH(HttpStatus.UNPROCESSABLE_CONTENT, "Quantity mismatch"),
+    ORDER_ALREADY_EXISTS(HttpStatus.CONFLICT, "Order already exists"),
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "Order not found"),
+    INSUFFICIENT_AVAILABLE_STOCK(HttpStatus.CONFLICT, "Insufficient available stock"),
+    ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "Article not found"),
+    ARTICLE_ALREADY_EXISTS(HttpStatus.CONFLICT, "Article already exists"),
+    LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Location not found"),
+    LOCATION_ALREADY_EXISTS(HttpStatus.CONFLICT, "Location already exists"),
+    PICK_SEQUENCE_ALREADY_EXISTS(HttpStatus.CONFLICT, "Pick sequence already exists"),
+    NEGATIVE_RESULTING_STOCK(HttpStatus.CONFLICT, "Negative resulting stock"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error");
 
     private static final String TYPE_PREFIX = "https://warehouse.example/problems/";

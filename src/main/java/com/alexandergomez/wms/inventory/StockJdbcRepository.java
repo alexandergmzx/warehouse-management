@@ -40,6 +40,34 @@ public class StockJdbcRepository {
             """;
 
     /**
+     * Every bin that currently carries a given article, ordered by ascending
+     * location code — the order in which order creation draws from bins to
+     * satisfy a multi-bin line (confirmed workflow baseline).
+     */
+    private static final String CANDIDATE_BINS_SQL = """
+            SELECT s.article_id, s.location_id, l.code AS location_code
+            FROM stock s
+            JOIN location l ON l.id = s.location_id
+            WHERE s.article_id = :articleId
+            ORDER BY l.code
+            """;
+
+    /**
+     * Sum of requested quantity across every unfinished (non-{@code COMPLETED})
+     * task already drawing from one bin — the same reservation figure embedded
+     * in {@link #availableQuantity}, exposed standalone so order creation can
+     * combine it with a stock quantity already read under its own lock rather
+     * than re-reading {@code stock} here.
+     */
+    private static final String UNFINISHED_RESERVATION_SQL = """
+            SELECT COALESCE(sum(t.requested_quantity), 0)
+            FROM picking_task t
+            WHERE t.article_id = :articleId
+              AND t.source_location_id = :locationId
+              AND t.status <> 'COMPLETED'
+            """;
+
+    /**
      * Stock-versus-ledger reconciliation: bins whose on-hand quantity differs
      * from the sum of their append-only movement deltas (FT-13). A clean
      * fixture returns no rows.
@@ -69,6 +97,20 @@ public class StockJdbcRepository {
                 .addValue("locationId", locationId);
         Integer available = jdbc.queryForObject(AVAILABILITY_SQL, params, Integer.class);
         return available == null ? 0 : available;
+    }
+
+    public List<CandidateBin> candidateBinsForArticle(long articleId) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("articleId", articleId);
+        return jdbc.query(CANDIDATE_BINS_SQL, params, (rs, rowNum) -> new CandidateBin(
+                rs.getLong("article_id"), rs.getLong("location_id"), rs.getString("location_code")));
+    }
+
+    public int unfinishedTaskReservation(long articleId, long locationId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("articleId", articleId)
+                .addValue("locationId", locationId);
+        Integer reserved = jdbc.queryForObject(UNFINISHED_RESERVATION_SQL, params, Integer.class);
+        return reserved == null ? 0 : reserved;
     }
 
     public List<StockLedgerDiscrepancy> reconcileStockAgainstMovements() {

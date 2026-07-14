@@ -267,6 +267,53 @@ public class PickingService {
         }
     }
 
+    /**
+     * Administrative recovery (ADR 0004): moves an uncompleted task to
+     * {@code BLOCKED} with a required, audited reason. Releases any
+     * user/device assignment and clears scan confirmations; stock and the
+     * order/line's own progress state are untouched.
+     */
+    @Transactional
+    public BlockTaskResponse block(Long adminUserId, Long taskId, String reason) {
+        PickingTask task = pickingTasks.findByIdForUpdate(taskId)
+                .orElseThrow(() -> new ProblemException(ProblemCode.TASK_NOT_FOUND, "Task not found."));
+        if (task.getStatus() == TaskStatus.BLOCKED || task.getStatus() == TaskStatus.COMPLETED) {
+            throw new ProblemException(ProblemCode.INVALID_TASK_STATE,
+                    "Task cannot be blocked from its current state.");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        TaskStatus previous = task.getStatus();
+        task.block(now);
+        pickingTasks.save(task);
+        taskTransitions.save(TaskTransition.record(task.getId(), previous, TaskStatus.BLOCKED,
+                adminUserId, null, reason, currentCorrelationUuid(), null, now));
+
+        return new BlockTaskResponse(task.getId(), task.getStatus().name(), reason, toInstant(now));
+    }
+
+    /**
+     * Administrative recovery (ADR 0004): returns a {@code BLOCKED} task to
+     * {@code AVAILABLE}, preserving its FIFO and allocation fields. Stock is
+     * unchanged; the task becomes claimable again in normal global FIFO order.
+     */
+    @Transactional
+    public ResumeTaskResponse resume(Long adminUserId, Long taskId) {
+        PickingTask task = pickingTasks.findByIdForUpdate(taskId)
+                .orElseThrow(() -> new ProblemException(ProblemCode.TASK_NOT_FOUND, "Task not found."));
+        if (task.getStatus() != TaskStatus.BLOCKED) {
+            throw new ProblemException(ProblemCode.INVALID_TASK_STATE, "Task is not blocked.");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        task.resume();
+        pickingTasks.save(task);
+        taskTransitions.save(TaskTransition.record(task.getId(), TaskStatus.BLOCKED, TaskStatus.AVAILABLE,
+                adminUserId, null, null, currentCorrelationUuid(), null, now));
+
+        return new ResumeTaskResponse(task.getId(), task.getStatus().name(), toInstant(now));
+    }
+
     private ConfirmResponse toConfirmResponse(PickingTask task) {
         StockMovement movement = stockMovements.findByPickingTaskId(task.getId())
                 .orElseThrow(() -> new IllegalStateException("Completed task missing its movement"));

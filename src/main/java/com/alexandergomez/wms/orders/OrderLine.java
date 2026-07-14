@@ -100,4 +100,15 @@ public class OrderLine {
     public void markCompleted() {
         this.status = OrderLineStatus.COMPLETED;
     }
+
+    public static OrderLine create(Long orderId, Integer lineNumber, Long articleId, Integer requestedQuantity) {
+        OrderLine line = new OrderLine();
+        line.orderId = orderId;
+        line.lineNumber = lineNumber;
+        line.articleId = articleId;
+        line.requestedQuantity = requestedQuantity;
+        line.pickedQuantity = 0;
+        line.status = OrderLineStatus.OPEN;
+        return line;
+    }
 }

@@ -62,4 +62,14 @@ public class Location {
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
+
+    /** The QR payload is always server-derived as {@code LOC:<code>} (API.md). */
+    public static Location create(String code, Integer pickSequence) {
+        Location location = new Location();
+        location.code = code;
+        location.qrValue = "LOC:" + code;
+        location.pickSequence = pickSequence;
+        location.active = true;
+        return location;
+    }
 }

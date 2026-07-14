@@ -149,4 +149,25 @@ public class StockMovement {
         movement.occurredAt = occurredAt;
         return movement;
     }
+
+    /**
+     * Creates one append-only {@code ADJUSTMENT} ledger row (a signed manual
+     * correction, e.g. a cycle-count fix). Order/line/task/device are always
+     * null for this movement type (database check constraint).
+     */
+    public static StockMovement adjustment(Long articleId, Long locationId, int quantityDelta,
+            int resultingQuantity, Long performedByUserId, String reason, UUID correlationId,
+            OffsetDateTime occurredAt) {
+        StockMovement movement = new StockMovement();
+        movement.movementType = MovementType.ADJUSTMENT;
+        movement.articleId = articleId;
+        movement.locationId = locationId;
+        movement.quantityDelta = quantityDelta;
+        movement.resultingQuantity = resultingQuantity;
+        movement.performedByUserId = performedByUserId;
+        movement.reason = reason;
+        movement.correlationId = correlationId;
+        movement.occurredAt = occurredAt;
+        return movement;
+    }
 }

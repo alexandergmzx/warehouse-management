@@ -9,4 +9,6 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     Optional<Location> findByCode(String code);
 
     Optional<Location> findByQrValue(String qrValue);
+
+    Optional<Location> findByPickSequence(Integer pickSequence);
 }

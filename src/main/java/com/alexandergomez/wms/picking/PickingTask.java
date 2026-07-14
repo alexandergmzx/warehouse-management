@@ -191,4 +191,39 @@ public class PickingTask {
         this.confirmationId = confirmationId;
         this.completedAt = when;
     }
+
+    /**
+     * Administrative recovery (ADR 0004): releases any assignment, clears scan
+     * confirmations, and preserves allocation fields. Physical stock and the
+     * order/line's own progress state are not touched.
+     */
+    public void block(OffsetDateTime when) {
+        this.status = TaskStatus.BLOCKED;
+        this.assignedUserId = null;
+        this.assignedDeviceId = null;
+        this.assignedAt = null;
+        this.locationConfirmedAt = null;
+        this.articleConfirmedAt = null;
+        this.blockedAt = when;
+    }
+
+    public void resume() {
+        this.status = TaskStatus.AVAILABLE;
+        this.blockedAt = null;
+    }
+
+    /** Newly allocated task, immediately claimable in normal FIFO order. */
+    public static PickingTask available(String taskNumber, Long orderLineId, Integer taskSequence,
+            Long articleId, Long sourceLocationId, Integer requestedQuantity) {
+        PickingTask task = new PickingTask();
+        task.taskNumber = taskNumber;
+        task.orderLineId = orderLineId;
+        task.taskSequence = taskSequence;
+        task.articleId = articleId;
+        task.sourceLocationId = sourceLocationId;
+        task.requestedQuantity = requestedQuantity;
+        task.confirmedQuantity = 0;
+        task.status = TaskStatus.AVAILABLE;
+        return task;
+    }
 }
