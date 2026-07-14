@@ -67,13 +67,24 @@ These hold across the whole implementation and are not incidental to any one end
 
 ## Prerequisites — owner managed
 
-The approved baseline (ADR 0002) is Eclipse Temurin JDK 21, Maven 3.9.16, and Docker Desktop with Compose v2 on 64-bit Windows with virtualization enabled. The project owner installs and updates workstation tools.
+This project is developed on both a 64-bit Windows workstation and a Linux Mint 22 desktop (ADR 0009 amends ADR 0002 for cross-platform provisioning); the application, tests, and `compose.yaml` are unchanged and OS-neutral either way. The project owner installs and updates workstation tools:
 
-The project owner may collect version evidence from a new PowerShell session:
+- **JDK:** latest Eclipse Temurin 21.x LTS patch (Windows: Adoptium MSI/zip installer; Linux Mint 22: Adoptium's `apt` repository, `temurin-21-jdk`).
+- **Maven:** none to install — the committed wrapper (`mvnw` / `mvnw.cmd`) bootstraps Maven 3.9.16 on first run. A system Maven 3.9.16 install remains equally valid if already present.
+- **Docker:** Docker Desktop with Compose v2 on Windows (virtualization enabled); Docker Engine (`docker-ce`, `docker-compose-plugin` from Docker's own `apt` repository) plus your user in the `docker` group on Linux Mint.
+
+The project owner may collect version evidence from a new shell session:
 
 ```powershell
 java -version
-mvn -version
+.\mvnw.cmd -v
+docker --version
+docker compose version
+```
+
+```bash
+java -version
+./mvnw -v
 docker --version
 docker compose version
 ```
@@ -83,28 +94,32 @@ docker compose version
 Docker Compose is the approved development route (ADR 0002); the image is pinned by immutable digest. Record first-start evidence per ADR 0006.
 
 1. Optionally copy `.env.example` to `.env` and change development-only database values. Both Docker Compose and the Spring `dev` profile read this file.
-2. Start PostgreSQL:
+2. Start PostgreSQL (identical on Windows and Linux):
 
-   ```powershell
+   ```shell
    docker compose up -d
    docker compose ps
    ```
 
 3. Start the application. Flyway creates and seeds the schema automatically:
 
-   ```powershell
-   mvn spring-boot:run
+   ```shell
+   ./mvnw spring-boot:run       # Linux/macOS
+   .\mvnw.cmd spring-boot:run   # Windows
    ```
 
 4. Check database-backed application health:
 
+   ```shell
+   curl http://localhost:8080/actuator/health          # Linux/macOS
+   ```
    ```powershell
-   Invoke-RestMethod http://localhost:8080/actuator/health
+   Invoke-RestMethod http://localhost:8080/actuator/health   # Windows
    ```
 
-5. Open a SQL session when running the diagnostic pack:
+5. Open a SQL session when running the diagnostic pack (identical on both OSes):
 
-   ```powershell
+   ```shell
    docker compose exec postgres psql -U wms -d wms
    ```
 
@@ -112,19 +127,20 @@ Development seed users are `admin` / `admin123` and `picker01` / `picker123`. Th
 
 ## Build and test
 
-This is the validated verification path (see `docs/evidence/2026-07-13-phase6-maven-verify.md`). The test suite is integration-only (Failsafe `*IT` classes, each backed by its own disposable Testcontainers PostgreSQL instance) — there are no plain unit tests, so `mvn test` runs zero tests:
+This is the validated verification path (see `docs/evidence/2026-07-13-phase6-maven-verify.md`). The test suite is integration-only (Failsafe `*IT` classes, each backed by its own disposable Testcontainers PostgreSQL instance) — there are no plain unit tests, so `mvn test`/`./mvnw test` runs zero tests:
 
-```powershell
-mvn verify
+```shell
+./mvnw verify       # Linux/macOS
+.\mvnw.cmd verify   # Windows
 ```
 
-`mvn verify` compiles, runs all integration tests (migrations, seed reconciliation, credentials, append-only movement enforcement, auth, picking, admin, labels, dashboard, config, logging, MFC seam), then Checkstyle and SpotBugs. A working Docker runtime is required.
+`verify` compiles, runs all integration tests (migrations, seed reconciliation, credentials, append-only movement enforcement, auth, picking, admin, labels, dashboard, config, logging, MFC seam), then Checkstyle and SpotBugs. A working Docker runtime is required (Testcontainers talks to the local Docker socket on either OS).
 
 ## Reset the development database
 
-**This is destructive.** It permanently deletes local WMS database data and reruns all migrations on the next start:
+**This is destructive.** It permanently deletes local WMS database data and reruns all migrations on the next start (identical on both OSes):
 
-```powershell
+```shell
 docker compose down -v
 docker compose up -d
 ```
@@ -152,22 +168,27 @@ The default profile is `dev`. It adds `db/devdata` to Flyway and therefore insta
 
 Local secrets belong in `.env` or process environment variables, never committed files. Only the application port will be opened to the LAN in the installation runbook; Compose binds PostgreSQL to `127.0.0.1` deliberately. `docs/configuration-matrix.md` is the authoritative, complete reference (owner, sensitivity, environment, restart requirement for every parameter); the table above is a quick-start subset.
 
-## Docker Compose versus native PostgreSQL on Windows
+## Docker Compose versus native PostgreSQL
 
-Docker Compose is the approved primary route (ADR 0002, decision D-02) because it pins the PostgreSQL image by immutable digest, creates the database consistently, keeps extensions and data isolated, and makes reset/integration testing reproducible. The tradeoff is Docker Desktop's installation size, memory use, virtualization dependency, and possible corporate licensing/policy restrictions.
+Docker Compose is the approved primary route (ADR 0002, decision D-02) because it pins the PostgreSQL image by immutable digest, creates the database consistently, keeps extensions and data isolated, and makes reset/integration testing reproducible. The tradeoff is Docker's installation size, memory use, virtualization dependency (Windows), or daemon/group setup (Linux), and possible corporate licensing/policy restrictions.
 
-A native PostgreSQL 17 installation remains the documented fallback. It starts faster and avoids a VM layer, but Windows service setup, `pg_hba.conf`, extension availability, upgrades, data cleanup, and troubleshooting become machine-specific. If a native PostgreSQL instance already occupies port 5432, override `WMS_DB_PORT` for the Compose container rather than stopping the native service.
+A native PostgreSQL 17 installation remains the documented fallback on either OS. It starts faster and avoids a container layer, but service setup, `pg_hba.conf`, extension availability, upgrades, data cleanup, and troubleshooting become machine-specific — Windows service configuration versus a Linux systemd unit and package-manager-owned data directory. If a native PostgreSQL instance already occupies port 5432, override `WMS_DB_PORT` for the Compose container rather than stopping the native service.
+
+## Cross-platform development
+
+This project is developed on both a Windows workstation and a Linux Mint 22 desktop. Nothing in the application, `pom.xml`, `compose.yaml`, or the test suite is OS-specific — only tool *provisioning* differs, and that is now handled either identically (the Maven Wrapper) or via matched per-OS steps (JDK, Docker). See ADR 0009 (`docs/decisions/0009-cross-platform-developer-provisioning.md`) for the full rationale, and `docs/runbook-linux.md` for the Linux Mint 22 counterpart to `docs/runbook.md`.
 
 ## Key documents
 
 - `API.md` — the implemented and evidenced HHT/admin REST contract, plus the label and dashboard endpoints.
 - `docs/configuration-matrix.md` — every parameter's owner, default, sensitivity, environment, and restart requirement.
 - `docs/runbook.md` — clean-environment Windows install, firewall scoping, LAN/HHT check, and rollback.
+- `docs/runbook-linux.md` — the Linux Mint 22 counterpart: clean-environment install, `ufw` scoping, LAN/HHT check, and rollback.
 - `docs/sql-diagnostics.md` — stuck-task, ledger-reconciliation, and order-trace SQL.
 - `docs/log-analysis-guide.md` — structured-log field reference and worked diagnosis examples.
 - `docs/incident-record-template.md` — the template for recording a real operational incident.
 - `docs/architecture.md` — module boundaries, transactions, and the MFC seam.
-- `docs/decisions/` — ADRs 0001–0008; ADR 0002 records the approved technology baseline.
+- `docs/decisions/` — ADRs 0001–0009; ADR 0002 records the approved technology baseline, amended by ADR 0009 for cross-platform provisioning.
 - `docs/evidence/` — retained runtime and test evidence per build/configuration identifier.
 - `docs/functional-test-specification.md`, `docs/requirements-traceability.md`, and `docs/executed-test-report.md` — numbered cases, requirement mapping, and aggregated pass/fail/blocked status for FT-01–FT-19.
 - `docs/research/` — early research, decision packet, and validation log from the design phase.

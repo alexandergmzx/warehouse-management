@@ -23,7 +23,7 @@ only.
 
 ## Current authorization boundary
 
-- The project owner installs and manages all system tools (Java, Maven, Docker, PostgreSQL, IDE plugins/extensions) independently. Do not install or download them.
+- The project owner installs and manages all system tools (Java, Docker, PostgreSQL, IDE plugins/extensions) independently. Do not install or download them. Maven itself is the one documented exception: the committed Maven Wrapper (`mvnw`/`mvnw.cmd`) bootstraps Maven 3.9.16 on first build run per ADR 0009 — that is the approved provisioning path, not a tool the owner installs by hand.
 - Planning, research, comparison, review, and documentation proposals are always allowed.
 - Ask before altering a confirmed workflow rule below, changing a pinned tool version without a new/updated ADR, or making a change whose blast radius extends beyond this repository.
 
@@ -54,8 +54,9 @@ Unless the project owner explicitly changes it:
 
 ## Technology and IDE rules
 
-- Tool versions are pinned per ADR 0002 (Temurin 21.0.11, Maven 3.9.16, Spring Boot 4.0.7, PostgreSQL 17.10 pinned by immutable image digest, pgJDBC 42.7.13). Do not change a pinned version without a new/updated ADR.
-- The project owner installs workstation tools independently.
+- Tool versions are pinned per ADR 0002 (Spring Boot 4.0.7, PostgreSQL 17.10 pinned by immutable image digest, pgJDBC 42.7.13) as amended by ADR 0009 (Temurin: latest 21.x LTS patch, floating rather than an exact build; Maven 3.9.16, provisioned via the committed wrapper rather than a manual install). Do not change a pinned version without a new/updated ADR.
+- The project owner installs workstation tools independently (JDK, Docker, PostgreSQL, IDE); Maven is wrapper-provisioned per ADR 0009.
+- The project is developed across a Windows workstation and a Linux Mint 22 desktop; keep provisioning, scripts, and documentation OS-neutral or maintain matched per-OS variants (see `docs/runbook.md` and `docs/runbook-linux.md`) rather than assuming Windows-only.
 - Maven and Git are the portable sources of truth; do not depend on editor-only build behavior.
 - IntelliJ migration means importing the existing Maven repository, not generating a second project or rewriting the application.
 - Keep `.idea/`, local run configurations, workspace files, machine paths, and secrets out of version control unless a later review explicitly approves a safe shared file.
