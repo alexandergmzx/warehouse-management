@@ -4,6 +4,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,8 @@ import com.alexandergomez.wms.inventory.StockRepository;
  */
 @Service
 public class StockAdminService {
+
+    private static final Logger log = LoggerFactory.getLogger(StockAdminService.class);
 
     private final ArticleRepository articles;
     private final LocationRepository locations;
@@ -67,6 +71,14 @@ public class StockAdminService {
         UUID correlationId = currentCorrelationUuid();
         StockMovement movement = stockMovements.save(StockMovement.adjustment(article.getId(), location.getId(),
                 request.quantityDelta(), resultingQuantity, adminUserId, request.reason(), correlationId, now));
+
+        log.atInfo()
+                .addKeyValue("articleSku", article.getSku())
+                .addKeyValue("locationCode", location.getCode())
+                .addKeyValue("quantityDelta", request.quantityDelta())
+                .addKeyValue("resultingQuantity", resultingQuantity)
+                .addKeyValue("adminUserId", adminUserId)
+                .log("stock adjusted");
 
         return new StockAdjustmentResponse(movement.getId(), article.getSku(), location.getCode(),
                 request.quantityDelta(), resultingQuantity);

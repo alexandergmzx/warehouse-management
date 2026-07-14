@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>WMS task dashboard</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+        h1 { font-size: 1.25rem; }
+        table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+        th, td { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
+        th { background: #f0f0f0; }
+        tr.stuck { background: #fde2e2; }
+        #status { color: #555; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <h1>Warehouse task dashboard</h1>
+    <p id="status">Last refreshed: <span id="last-refreshed">just now</span></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Task #</th>
+                <th>State</th>
+                <th>Order</th>
+                <th>Line</th>
+                <th>Location</th>
+                <th>Article</th>
+                <th>Qty</th>
+                <th>User</th>
+                <th>Device</th>
+                <th>Last transition</th>
+                <th>Stuck</th>
+            </tr>
+        </thead>
+        <tbody id="tasks-body">
+            <tr th:each="t : ${tasks}" th:classappend="${t.stuck} ? 'stuck'">
+                <td th:text="${t.taskNumber}"></td>
+                <td th:text="${t.state}"></td>
+                <td th:text="${t.orderNumber}"></td>
+                <td th:text="${t.lineNumber}"></td>
+                <td th:text="${t.locationCode}"></td>
+                <td th:text="${t.articleSku}"></td>
+                <td th:text="${t.quantity}"></td>
+                <td th:text="${t.assignedUsername}"></td>
+                <td th:text="${t.deviceCode}"></td>
+                <td th:text="${t.lastTransitionAt}"></td>
+                <td th:text="${t.stuck} ? 'STUCK' : ''"></td>
+            </tr>
+        </tbody>
+    </table>
+    <script th:inline="javascript">
+        const pollIntervalMs = /*[[${pollIntervalMs}]]*/ 2000;
+        const columns = ["taskNumber", "state", "orderNumber", "lineNumber", "locationCode",
+            "articleSku", "quantity", "assignedUsername", "deviceCode", "lastTransitionAt"];
+
+        function renderRow(task) {
+            const tr = document.createElement("tr");
+            if (task.stuck) {
+                tr.classList.add("stuck");
+            }
+            for (const column of columns) {
+                const td = document.createElement("td");
+                const value = task[column];
+                td.textContent = value === null || value === undefined ? "" : value;
+                tr.appendChild(td);
+            }
+            const stuckCell = document.createElement("td");
+            stuckCell.textContent = task.stuck ? "STUCK" : "";
+            tr.appendChild(stuckCell);
+            return tr;
+        }
+
+        function refresh() {
+            fetch("/dashboard/api/tasks", { headers: { "Accept": "application/json" } })
+                .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                .then(tasks => {
+                    document.getElementById("tasks-body").replaceChildren(...tasks.map(renderRow));
+                    document.getElementById("last-refreshed").textContent = new Date().toLocaleTimeString();
+                })
+                .catch(error => console.error("Dashboard refresh failed", error));
+        }
+
+        setInterval(refresh, pollIntervalMs);
+    </script>
+</body>
+</html>

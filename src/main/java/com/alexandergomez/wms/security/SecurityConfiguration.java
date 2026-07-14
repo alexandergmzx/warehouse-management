@@ -3,6 +3,7 @@ package com.alexandergomez.wms.security;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -17,7 +18,10 @@ import com.alexandergomez.wms.identity.TokenService;
  * logout, and the health probe are open; administration paths require the
  * {@code ADMIN} role; everything else requires authentication. CSRF is disabled
  * because the API is token-authenticated and holds no session (ADR 0005). The
- * browser dashboard's cookie/CSRF story is a later phase.
+ * browser dashboard uses a separate, cookie/CSRF-protected filter chain; see
+ * {@link DashboardSecurityConfiguration}. Evaluated last ({@link Order} 2, no
+ * {@code securityMatcher}) so it only sees requests the dashboard chain didn't
+ * claim.
  */
 @Configuration
 @EnableWebSecurity
@@ -25,6 +29,7 @@ import com.alexandergomez.wms.identity.TokenService;
 public class SecurityConfiguration {
 
     @Bean
+    @Order(2)
     SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, TokenService tokenService,
             WmsAuthenticationEntryPoint authenticationEntryPoint,
             WmsAccessDeniedHandler accessDeniedHandler) {

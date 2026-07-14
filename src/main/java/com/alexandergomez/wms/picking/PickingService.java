@@ -1,5 +1,6 @@
 package com.alexandergomez.wms.picking;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -29,6 +30,8 @@ import com.alexandergomez.wms.inventory.StockMovementRepository;
 import com.alexandergomez.wms.inventory.StockRepository;
 import com.alexandergomez.wms.orders.CustomerOrder;
 import com.alexandergomez.wms.orders.CustomerOrderRepository;
+import com.alexandergomez.wms.orders.OrderCompletionEvent;
+import com.alexandergomez.wms.orders.OrderCompletionPublisher;
 import com.alexandergomez.wms.orders.OrderLine;
 import com.alexandergomez.wms.orders.OrderLineRepository;
 import com.alexandergomez.wms.orders.OrderLineStatus;
@@ -62,11 +65,13 @@ public class PickingService {
     private final StockMovementRepository stockMovements;
     private final ArticleRepository articles;
     private final LocationRepository locations;
+    private final OrderCompletionPublisher orderCompletionPublisher;
 
     public PickingService(PickingTaskRepository pickingTasks, PickingJdbcRepository pickingJdbc,
             TaskTransitionRepository taskTransitions, OrderLineRepository orderLines,
             CustomerOrderRepository orders, StockRepository stock, StockMovementRepository stockMovements,
-            ArticleRepository articles, LocationRepository locations) {
+            ArticleRepository articles, LocationRepository locations,
+            OrderCompletionPublisher orderCompletionPublisher) {
         this.pickingTasks = pickingTasks;
         this.pickingJdbc = pickingJdbc;
         this.taskTransitions = taskTransitions;
@@ -76,6 +81,7 @@ public class PickingService {
         this.stockMovements = stockMovements;
         this.articles = articles;
         this.locations = locations;
+        this.orderCompletionPublisher = orderCompletionPublisher;
     }
 
     @Transactional
@@ -188,6 +194,7 @@ public class PickingService {
 
     @Transactional
     public ConfirmResponse confirm(AuthenticatedUser caller, Long taskId, UUID confirmationId, int quantity) {
+        Instant startedAt = Instant.now();
         PickingTask task = pickingTasks.findByIdForUpdate(taskId)
                 .orElseThrow(() -> new ProblemException(ProblemCode.TASK_NOT_FOUND, "Task not found."));
         requireOwnership(caller, task);
@@ -257,6 +264,24 @@ public class PickingService {
             }
             orders.save(order);
 
+            if (remainingLinesOnOrder == 0) {
+                orderCompletionPublisher.publish(new OrderCompletionEvent(
+                        UUID.randomUUID(), order.getId(), order.getOrderNumber(), now.toInstant()));
+            }
+
+            Article article = articles.findById(task.getArticleId()).orElseThrow();
+            Location location = locations.findById(task.getSourceLocationId()).orElseThrow();
+            log.atInfo()
+                    .addKeyValue("orderNumber", order.getOrderNumber())
+                    .addKeyValue("taskNumber", task.getTaskNumber())
+                    .addKeyValue("articleSku", article.getSku())
+                    .addKeyValue("locationCode", location.getCode())
+                    .addKeyValue("quantity", quantity)
+                    .addKeyValue("userId", caller.userId())
+                    .addKeyValue("deviceId", caller.deviceId())
+                    .addKeyValue("durationMs", Duration.between(startedAt, Instant.now()).toMillis())
+                    .log("pick confirmed");
+
             return new ConfirmResponse(task.getId(), task.getStatus().name(), task.getConfirmedQuantity(),
                     movement.getId(), stockRow.getQuantity(),
                     new ConfirmResponse.OrderSummary(order.getOrderNumber(), order.getStatus().name()),
@@ -289,6 +314,13 @@ public class PickingService {
         taskTransitions.save(TaskTransition.record(task.getId(), previous, TaskStatus.BLOCKED,
                 adminUserId, null, reason, currentCorrelationUuid(), null, now));
 
+        log.atInfo()
+                .addKeyValue("taskId", task.getId())
+                .addKeyValue("taskNumber", task.getTaskNumber())
+                .addKeyValue("adminUserId", adminUserId)
+                .addKeyValue("reason", reason)
+                .log("task blocked");
+
         return new BlockTaskResponse(task.getId(), task.getStatus().name(), reason, toInstant(now));
     }
 
@@ -310,6 +342,12 @@ public class PickingService {
         pickingTasks.save(task);
         taskTransitions.save(TaskTransition.record(task.getId(), TaskStatus.BLOCKED, TaskStatus.AVAILABLE,
                 adminUserId, null, null, currentCorrelationUuid(), null, now));
+
+        log.atInfo()
+                .addKeyValue("taskId", task.getId())
+                .addKeyValue("taskNumber", task.getTaskNumber())
+                .addKeyValue("adminUserId", adminUserId)
+                .log("task resumed");
 
         return new ResumeTaskResponse(task.getId(), task.getStatus().name(), toInstant(now));
     }

@@ -53,6 +53,37 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <!--
+            QR encoding for Phase 8 labels (ADR 0007). ZXing is in maintenance
+            mode (bug-fix patches only, no roadmap) but is the mature, direct
+            Apache-2.0 encoder Phase 2/3 research selected over wrapper
+            libraries; Boot 4 does not manage a version, so it is pinned to
+            the current Maven Central release.
+        -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.4</version>
+        </dependency>
+        <!--
+            PDF label sheets for Phase 8 (ADR 0007), selected over iText
+            (AGPL) and OpenPDF per Phase 2/3 research. Boot 4 does not manage
+            a version, so it is pinned to the current Maven Central release.
+        -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.8</version>
+        </dependency>
         <!--
             Argon2PasswordEncoder delegates to BouncyCastle's Argon2BytesGenerator.
             Spring Boot 4 does not manage a BouncyCastle version, so it is pinned
@@ -62,11 +93,6 @@
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
             <version>1.85</version>
-        </dependency>
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>8.1</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

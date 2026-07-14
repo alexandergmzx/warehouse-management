@@ -38,6 +38,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ProblemException.class)
     public ResponseEntity<ProblemDetail> handleProblem(ProblemException ex, WebRequest request) {
+        log.atWarn()
+                .addKeyValue("problemCode", ex.problemCode().code())
+                .addKeyValue("detail", ex.getMessage())
+                .addKeyValue("extensions", ex.extensions())
+                .log("business rule violation");
         ProblemDetail problem = problems.create(
                 ex.problemCode(), ex.getMessage(), correlationId(request), ex.extensions());
         return ResponseEntity.status(ex.problemCode().status()).body(problem);

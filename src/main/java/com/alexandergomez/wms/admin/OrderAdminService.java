@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +46,8 @@ import com.alexandergomez.wms.picking.TaskTransitionRepository;
  */
 @Service
 public class OrderAdminService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderAdminService.class);
 
     private final CustomerOrderRepository orders;
     private final OrderLineRepository orderLines;
@@ -165,6 +169,13 @@ public class OrderAdminService {
                     adminUserId, null, null, correlationId, null, now));
             taskCount++;
         }
+
+        log.atInfo()
+                .addKeyValue("orderNumber", order.getOrderNumber())
+                .addKeyValue("lineCount", lineByNumber.size())
+                .addKeyValue("taskCount", taskCount)
+                .addKeyValue("adminUserId", adminUserId)
+                .log("order created");
 
         return new CreateOrderResponse(order.getOrderNumber(), order.getStatus().name(),
                 now.toInstant(), lineByNumber.size(), taskCount);

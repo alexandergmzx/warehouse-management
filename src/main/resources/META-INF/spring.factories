@@ -1,0 +1,8 @@
+# Preprod startup validation (FT-15). Registered here because
+# EnvironmentPostProcessor/FailureAnalyzer predate the *.imports file
+# convention in Spring Boot 4.0.7 (confirmed against the framework sources).
+org.springframework.boot.EnvironmentPostProcessor=\
+com.alexandergomez.wms.configuration.PreprodConfigurationValidator
+
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+com.alexandergomez.wms.configuration.PreprodConfigurationFailureAnalyzer

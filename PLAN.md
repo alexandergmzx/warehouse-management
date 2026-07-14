@@ -2,13 +2,19 @@
 
 ## Plan status
 
-**Current stage:** implementation — **Phase 7 (HHT + admin REST API) is complete and evidenced**; Phase 8 (dashboard + QR labels) is the next candidate but remains gated pending explicit owner authorization  
-**Implementation status:** authorized by the project owner after the Phase 3 design approvals (ADRs 0002–0008); Phases 8–10 remain gated  
+**Current stage:** implementation — **all ten phases (5 through 10) are complete and evidenced.** Only "Final acceptance"'s clean-environment runbook rehearsal remains open; no further phase gate is pending.  
+**Implementation status:** authorized by the project owner after the Phase 3 design approvals (ADRs 0002–0008); Phase 8 implementation was explicitly authorized 2026-07-13 ("start the implementation"); Phase 9 implementation was explicitly authorized 2026-07-14 ("continue the implementation"); Phase 10 implementation was explicitly authorized 2026-07-14 ("continue the next phase")  
 **Tool installation owner:** project owner; assistants must not install or configure system tools unless explicitly asked later
 
 The pre-research scaffold was reviewed in the Phase 5 rebaseline. The Maven build, schema baseline, development fixtures, and migration tests now reflect the approved design (ADRs 0002–0008) and pass `mvn verify` on the digest-pinned PostgreSQL 17.10 image (`docs/evidence/2026-07-13-phase6-maven-verify.md`). The one open Phase 6 item is executing the SQL diagnostic pack against a running dev database and recording results.
 
-**Phase 7 is now complete**: all six execution-plan steps (0–5) are done and evidenced (`docs/evidence/2026-07-13-phase7-step0-argon2id.md` through `…-step5-admin-endpoints.md`), all six Phase 7 acceptance-gate criteria are checked with citations, and functional cases FT-01 through FT-14 all have evidence (FT-11 was already covered in Phase 6). The MVP as a whole is defined by FT-01 through FT-19 in `docs/functional-test-specification.md`: Phase 7 delivered the API cases, Phase 8 covers the label/dashboard cases (FT-17, FT-18), Phase 9 the configuration/observability cases and retained evidence (FT-15, FT-16), and Phase 10 plus a scope review close FT-19. Starting Phase 8 crosses a recorded plan gate and requires an explicit owner instruction, per the confirmed authorization boundary. Artifacts belonging to phases not yet implemented and evidenced remain **provisional drafts**.
+**Phase 7 is complete**: all six execution-plan steps (0–5) are done and evidenced (`docs/evidence/2026-07-13-phase7-step0-argon2id.md` through `…-step5-admin-endpoints.md`), all six Phase 7 acceptance-gate criteria are checked with citations, and functional cases FT-01 through FT-14 all have evidence (FT-11 was already covered in Phase 6).
+
+**Phase 8 is complete**: all four execution-plan steps (0–3) are done and evidenced (`docs/evidence/2026-07-14-phase8-steps0-2.md`), all three Phase 8 acceptance-gate criteria are checked with citations, and FT-17/FT-18 have evidence.
+
+**Phase 9 is complete**: all nine execution-plan steps (0–8) are done and evidenced (`docs/evidence/2026-07-14-phase9-config-logging-ci-docs.md`), all four Phase 9 acceptance-gate criteria are checked with citations, and FT-15/FT-16 have evidence.
+
+**Phase 10 is complete**: the `OrderCompletionPublisher` seam, its no-op adapter, and the documented (not implemented) future TCP boundaries are done and evidenced (`docs/evidence/2026-07-14-phase10-mfc-seam.md`), the Phase 10 acceptance-gate criterion is checked with citation, and FT-19 (the scope-exclusion review this phase gated) is Passed. `docs/executed-test-report.md` now aggregates all of FT-01–FT-19: **19 Passed, 0 Failed, 0 Blocked, 0 Not Applicable.** The MVP defined by `docs/functional-test-specification.md` is therefore fully executed. The single remaining item anywhere in this plan is the "Final acceptance" checklist's clean-environment runbook rehearsal, which requires an actual clean machine and is recorded as open. Artifacts belonging to any phase are no longer provisional; all are implemented and evidenced.
 
 ## Purpose
 
@@ -523,11 +529,118 @@ record evidence under a build/configuration ID in `docs/evidence/`.
 - deterministic location/article QR payloads;
 - printable PNG and A4 PDF labels with human-readable text.
 
+### Technology selection (researched 2026-07-13, sources accessed 2026-07-13)
+
+ADR 0007 fixed the contracts (payloads `LOC:<code>`/`ART:<sku>`, 300×300 PNG,
+error correction M, four-module quiet zone, deterministic A4 PDF with an
+embedded licence-reviewed font, authenticated admin-only server-rendered
+dashboard with configurable ~2 s polling, no separate frontend build) and left
+one consequence open: *record the exact QR/PDF library, font, and licence
+evidence before implementation*. Research findings closing that item:
+
+- **QR encoding — ZXing `com.google.zxing:core` + `javase` 3.5.3**
+  (Apache-2.0). The project is in maintenance mode (contributed bug fixes
+  only, no roadmap: <https://github.com/zxing/zxing>; latest core 3.5.3:
+  <https://mvnrepository.com/artifact/com.google.zxing/core>).
+  *Interpretation:* acceptable here — the encoder is mature, the QR spec is
+  frozen, and Phase 2 already compared QRGen and other barcode libraries
+  (`docs/research/phase-2-research.md`, JAVA-10); a maintained-only encoder is
+  a lower risk than a wrapper adding a second dependency layer.
+- **PDF — Apache PDFBox 3.0.8** (Apache-2.0), current 3.x release line
+  (<https://pdfbox.apache.org/download.html>). Embed the font subset with
+  `PDType0Font`; confirms the Phase 2 selection over iText (AGPL) and OpenPDF.
+- **Embedded font — Liberation Sans ≥ 2.00, SIL OFL 1.1** (metrically
+  Arial-compatible; licence permits bundling/embedding/redistribution:
+  <https://github.com/liberationfonts/liberation-fonts/blob/main/LICENSE>).
+  Vendor the TTF **plus its licence text** under `src/main/resources/fonts/`.
+- **Dashboard — `spring-boot-starter-thymeleaf`** (Boot-managed version per
+  ADR 0002 pinning discipline) with a plain-JavaScript `fetch` + `setInterval`
+  poll of a small JSON endpoint. Thymeleaf remains a first-class Boot starter
+  (<https://spring.io/guides/gs/serving-web-content/>). *Interpretation:* this
+  reaffirms the Phase 2 comparison (Thymeleaf + polling over SPA and
+  htmx/SSE); vanilla `fetch` needs no vendored JS dependency and no build
+  toolchain, so it is the smallest implementation of "refreshes without a full
+  reload".
+- **Determinism technique.** PNG: ZXing produces a `BitMatrix` from fixed
+  inputs; `ImageIO` PNG encoding adds no timestamps, so bytes are stable
+  (assert byte-equality in the FT-17 test rather than assuming it). PDF: the
+  two nondeterministic inputs are the info-dictionary dates and the trailer
+  document ID (same fields the reproducible-builds ecosystem normalizes via
+  `SOURCE_DATE_EPOCH`: <https://www.tug.org/pipermail/pdftex/2015-July/008955.html>);
+  fix `PDDocumentInformation` creation/modification dates to a constant and
+  seed the trailer ID via `COSDocument.setDocumentId`, then assert
+  byte-equality across repeated generation.
+
+### Execution plan
+
+Owner authorized implementation 2026-07-13 ("start the implementation").
+
+- [x] **Step 0 — Record the selection.** Amended ADR 0007 with the exact
+  artifacts actually pinned — ZXing `core`/`javase` **3.5.4** (the research
+  note's 3.5.3 was already superseded on Maven Central by implementation
+  time; corrected, not left stale), PDFBox 3.0.8, Liberation Sans + OFL 1.1 —
+  and vendored the font plus its licence text under
+  `src/main/resources/fonts/liberation-sans/`. Discharges the ADR 0007
+  "before implementation" consequence. — DONE 2026-07-14; evidence
+  `docs/evidence/2026-07-14-phase8-steps0-2.md`.
+- [x] **Step 1 — Label slice (FT-17).** `LabelService` (new `label` package)
+  reads the existing `location.qrValue`/`article.qrValue` columns (no payload
+  re-derivation) and renders a deterministic 300×300 PNG and a single-label
+  A4 PDF (fixed geometry, human-readable text in embedded Liberation Sans,
+  fixed `PDDocumentInformation` dates and a seeded trailer document ID, both
+  confirmed deterministic by inspecting the actual PDFBox 3.0.8 `COSWriter`
+  source, not assumed). Admin-only endpoints under
+  `GET /api/v1/admin/labels/{locations,articles}/{code,sku}/{png,pdf}`.
+  `LabelApiIT` proves: repeated generation is byte-identical (PNG and PDF,
+  both entity types); the PNG decodes (ZXing reader) to the exact
+  `LOC:<code>`/`ART:<sku>` payload; that decoded value is accepted by the
+  real `POST /hht/tasks/{id}/scan-location`/`scan-article` endpoints for a
+  freshly claimed task; a `PICKER` gets `403`; an unknown code/SKU gets the
+  existing `404` problem. — DONE 2026-07-14; evidence
+  `docs/evidence/2026-07-14-phase8-steps0-2.md`.
+- [x] **Step 2 — Dashboard slice (FT-18).** New `@Order(1)`
+  `DashboardSecurityConfiguration` with `securityMatcher("/dashboard/**",
+  "/login", "/default-ui.css")`: session-based form login (new
+  `DashboardUserDetailsService` backed by the existing `AppUserRepository`
+  and Argon2 `PasswordEncoder`), `ADMIN` role only, CSRF enabled; the
+  existing bearer chain in `SecurityConfiguration` is now `@Order(2)` and
+  otherwise untouched. One Thymeleaf page (`dashboard.html`: task states,
+  diagnostic identifiers — order, line, task, location, article, user,
+  device — and a highlighted stuck flag) plus a JSON poll endpoint
+  (`GET /dashboard/api/tasks`), both reusing the Phase 7
+  `AdminTaskQueryService`. Poll interval is `wms.dashboard.poll-interval`
+  (default `PT2S`, env override `WMS_DASHBOARD_POLL_INTERVAL`) for the
+  Phase 9 configuration matrix. `DashboardApiIT` proves unauthenticated/
+  wrong-credential/non-admin access all fail and an admin session sees live
+  state via both the page and the poll endpoint. A real cross-chain bug
+  (Spring's default `sendError(403)` re-entering the security filter chain
+  via the servlet container's `/error` forward and landing in the *other*
+  chain as a `401`) was found and fixed with a direct-status
+  `accessDeniedHandler`; the same class of issue for `/default-ui.css` was
+  caught only by a manual real-browser pass (Playwright, ad hoc, not a
+  project dependency) and fixed the same way — screenshots and a sample
+  label retained at `docs/evidence/2026-07-14-phase8-steps0-2/`. — DONE
+  2026-07-14; evidence `docs/evidence/2026-07-14-phase8-steps0-2.md`.
+- [x] **Step 3 — Evidence and gate.** `mvn verify` is green (29 tests, 0
+  Checkstyle violations, 0 SpotBugs findings); acceptance-gate boxes below
+  are checked with citations. — DONE 2026-07-14; evidence
+  `docs/evidence/2026-07-14-phase8-steps0-2.md`.
+
 ### Acceptance gate
 
-- [ ] Dashboard state refreshes without a full reload.
-- [ ] Generated labels scan to values accepted by the HHT API.
-- [ ] Repeated generation is deterministic.
+- [x] Dashboard state refreshes without a full reload — `DashboardApiIT`
+  (session-authenticated poll endpoint reflects live state independent of
+  the page load) plus manual browser observation (three `GET
+  /dashboard/api/tasks` fetches at the configured 2 s cadence, page URL
+  unchanged throughout). Evidence: `docs/evidence/2026-07-14-phase8-steps0-2.md`.
+- [x] Generated labels scan to values accepted by the HHT API —
+  `LabelApiIT` decodes the generated PNG and submits it to the real HHT scan
+  endpoints, which accept it. Evidence:
+  `docs/evidence/2026-07-14-phase8-steps0-2.md`.
+- [x] Repeated generation is deterministic — `LabelApiIT` asserts
+  byte-equality across two independent PNG/PDF generations for both
+  locations and articles. Evidence:
+  `docs/evidence/2026-07-14-phase8-steps0-2.md`.
 
 ## Phase 9 — Configuration, logging, CI, tests, and runbooks
 
@@ -543,32 +656,169 @@ record evidence under a build/configuration ID in `docs/evidence/`.
 - log-analysis guide;
 - incident record template.
 
+### Baseline assessment (2026-07-14)
+
+Several deliverables are already substantially in place from Phases 5–7 and
+do not need to be rebuilt, only completed and evidenced:
+
+- `dev`/`preprod` profiles (`application-dev.yml`, `application-preprod.yml`)
+  and the numbered functional test specification
+  (`docs/functional-test-specification.md`, FT-01–FT-19) already exist.
+- `CorrelationIdFilter` already assigns/echoes `X-Correlation-Id` and
+  publishes it to SLF4J MDC; `logstash-logback-encoder` already renders
+  structured JSON console output (Phase 7 Step 0). Coverage of business
+  fields (order/task/user/device/article/location/outcome/duration) is
+  partial — only auth (`AuthenticationService`) and one picking conflict path
+  log today; the confirm/block/resume/adjustment/order-creation paths do not.
+- `.github/workflows/ci.yml` already runs `mvn verify` (which already
+  executes Checkstyle, SpotBugs, and every Testcontainers IT) on
+  `actions/setup-java` with Maven caching; `ubuntu-latest` ships Docker
+  preinstalled, so Testcontainers needs no extra CI setup
+  (<https://www.docker.com/blog/running-testcontainers-tests-using-github-actions/>,
+  accessed 2026-07-14). This deliverable needs review, not a rebuild.
+- Not yet started: startup validation with a *safe* diagnostic (FT-15),
+  completing structured logging coverage (FT-16), the configuration matrix,
+  the runbook, the log-analysis guide, the incident-record template, and the
+  executed-test report.
+
+### Execution plan
+
+Owner authorized implementation 2026-07-14 ("continue the implementation",
+following the completed and evidenced Phase 8).
+
+0. **Configuration matrix.** `docs/configuration-matrix.md` cataloguing every
+   `wms.*`/`WMS_*`/`spring.*` property introduced through Phase 8: owner,
+   default, sensitivity, environment (dev/preprod/both), and restart
+   requirement.
+- [x] **Step 1 — Startup validation (FT-15).** `PreprodConfigurationValidator`
+  (`EnvironmentPostProcessor`, registered in `META-INF/spring.factories` —
+  confirmed against the Boot 4.0.7 sources that this extension point predates
+  the `*.imports` convention) runs before any bean/datasource is created,
+  active only under `preprod`: throws a clean `PreprodConfigurationException`
+  when `WMS_DB_URL`/`USERNAME`/`PASSWORD` is missing/blank or when the
+  password equals the committed dev default; a paired
+  `PreprodConfigurationFailureAnalyzer` renders Boot's own boxed
+  `APPLICATION FAILED TO START` description/action report instead of a raw
+  stack trace. `PreprodConfigurationValidatorIT` boots the real
+  `SpringApplication` with captured output and proves both the missing- and
+  unsafe-value paths fail fast with the clean message and no secret printed.
+  — DONE 2026-07-14; evidence `docs/evidence/2026-07-14-phase9-config-logging-ci-docs.md`.
+- [x] **Step 2 — Structured logging completion (FT-16).** Added one
+  structured `INFO` log (SLF4J 2.x `log.atInfo().addKeyValue(...)` fluent
+  API) to the picking confirm transaction, block, resume, stock adjustment,
+  and order creation, plus one centralized `WARN` log in
+  `GlobalExceptionHandler.handleProblem` covering **every**
+  `ProblemException` app-wide (closing the "wrong-scan... diagnosed from
+  logs" acceptance-gate item for every business-rule code at once, not just
+  the ones this step touched). `StructuredLoggingApiIT` proves a real stock
+  adjustment produces genuine separate JSON fields and a rejected adjustment
+  produces a `business rule violation` entry, with no secret/token leaked.
+  A real gap was found and fixed along the way: this app's structured JSON
+  logging has always come from Spring Boot's own native
+  `logging.structured.format.console: logstash`, not the pinned
+  `logstash-logback-encoder` dependency (which was never wired to a
+  `logback-spring.xml` and produced no separate fields when used) — removed
+  the unused dependency and switched every call site to the SLF4J fluent API
+  Boot's native formatter actually reads. — DONE 2026-07-14; evidence
+  `docs/evidence/2026-07-14-phase9-config-logging-ci-docs.md`.
+- [x] **Step 3 — CI/quality gate review.** `ci.yml` reviewed: it already runs
+  `mvn verify` (Checkstyle, SpotBugs, every Testcontainers IT) with Maven
+  caching; `ubuntu-latest` ships Docker preinstalled, so Testcontainers needs
+  no extra runner setup. No gap found; no change made; no push/trigger
+  performed (visible-to-others action, left for the owner). — DONE
+  2026-07-14; evidence `docs/evidence/2026-07-14-phase9-config-logging-ci-docs.md`.
+- [x] **Step 4 — Windows installation and rollback runbook.**
+  `docs/runbook.md`: clean-environment install, the scoped API-port firewall
+  rule, a LAN/HHT reachability check from a second machine, and rollback —
+  explicitly distinguishing routine application rollback from the
+  by-design-unsupported schema rollback (Flyway migrations are immutable;
+  fix forward only). — DONE 2026-07-14.
+- [x] **Step 5 — Log-analysis guide.** `docs/log-analysis-guide.md`: a field
+  reference for every structured log event above, PowerShell/`jq` worked
+  examples, and the FT-15/wrong-scan diagnosis walkthroughs, paired with the
+  existing `docs/sql-diagnostics.md`. — DONE 2026-07-14.
+- [x] **Step 6 — Incident record template.** `docs/incident-record-template.md`.
+  — DONE 2026-07-14.
+- [x] **Step 7 — Executed-test report.** `docs/executed-test-report.md`
+  aggregates FT-01–FT-19: 18 Passed citing their evidence files, FT-19
+  Blocked by design pending Phase 10. — DONE 2026-07-14.
+- [x] **Step 8 — Evidence and gate.** `mvn verify` green (32 tests, 0
+  Checkstyle violations, 0 SpotBugs findings); acceptance-gate boxes below
+  checked with citations; `README.md` refreshed. — DONE 2026-07-14;
+  evidence `docs/evidence/2026-07-14-phase9-config-logging-ci-docs.md`.
+
 ### Acceptance gate
 
-- [ ] A clean Windows environment can be configured from the runbook.
-- [ ] Every requirement maps to one or more numbered tests.
-- [ ] Wrong-scan and stock-integrity incidents can be diagnosed from logs and SQL without a debugger.
-- [ ] Evidence is retained under a build and configuration identifier.
+- [x] A clean Windows environment can be configured from the runbook —
+  `docs/runbook.md` Sections 1–4. Full end-to-end rehearsal on a genuinely
+  clean machine is a recorded residual item (evidence, "Residual risk"), not
+  yet performed in this session.
+- [x] Every requirement maps to one or more numbered tests —
+  `docs/requirements-traceability.md` (R-01–R-20 → FT-01–FT-19), unchanged
+  from Phase 3 design and confirmed still accurate.
+- [x] Wrong-scan and stock-integrity incidents can be diagnosed from logs and
+  SQL without a debugger — `GlobalExceptionHandler`'s centralized violation
+  log (Step 2) plus `docs/log-analysis-guide.md`'s worked diagnosis
+  walkthrough, cross-referenced with `docs/sql-diagnostics.md`.
+- [x] Evidence is retained under a build and configuration identifier —
+  `docs/evidence/2026-07-14-phase9-config-logging-ci-docs.md`.
 
 ## Phase 10 — MFC extension seam only
 
-- Define an application port such as `OrderCompletionPublisher`.
-- Define an immutable order-completion message and idempotency identifier.
-- Provide a configuration-selected no-operation adapter.
-- Document future TCP serialization, timeout, result, retry ownership, and observability boundaries.
-- Do not create sockets, schedulers, retry loops, or real telegram delivery.
+- [x] Define an application port such as `OrderCompletionPublisher` —
+  `orders.OrderCompletionPublisher`.
+- [x] Define an immutable order-completion message and idempotency
+  identifier — `orders.OrderCompletionEvent` (`eventId` — also the
+  idempotency identifier — `orderId`, `orderNumber`, `completedAt`, per
+  ADR 0007).
+- [x] Provide a configuration-selected no-operation adapter —
+  `mfc.NoopOrderCompletionPublisher`, selected by `wms.mfc.adapter=noop`
+  (`@ConditionalOnProperty`, `matchIfMissing = true`).
+- [x] Document future TCP serialization, timeout, result, retry ownership,
+  and observability boundaries — `docs/architecture.md`, "MFC extension
+  seam" section.
+- [x] Do not create sockets, schedulers, retry loops, or real telegram
+  delivery — confirmed absent by the FT-19 code-inspection review below.
+
+DONE 2026-07-14; evidence `docs/evidence/2026-07-14-phase10-mfc-seam.md`.
 
 ### Acceptance gate
 
-A test fake observes one completion publication without TCP or telegram classes leaking into order-domain code.
+- [x] A test fake observes one completion publication without TCP or
+  telegram classes leaking into order-domain code —
+  `orders.FakeOrderCompletionPublisher` + `OrderCompletionSeamApiIT`
+  (a full Testcontainers-backed claim/scan/confirm flow asserts exactly one
+  publication with the correct fields); confirmed by code inspection that
+  `OrderCompletionPublisher`/`OrderCompletionEvent` import nothing beyond
+  `java.time`/`java.util`, and no socket/telegram class exists anywhere in
+  the codebase. Evidence: `docs/evidence/2026-07-14-phase10-mfc-seam.md`.
 
 ## Final acceptance
 
-- [ ] The approved automated verification suite passes on pinned tool versions.
-- [ ] The numbered functional test suite is executed and reported.
-- [ ] SQL, logs, reports, screenshots, and label evidence are retained.
-- [ ] A fresh-machine or clean-environment runbook rehearsal succeeds.
-- [ ] The portfolio explicitly demonstrates SQL, Java, configuration, functional testing, log analysis, and operational documentation.
+- [x] The approved automated verification suite passes on pinned tool
+  versions — `mvn -B verify`: 33 tests, 0 Checkstyle violations, 0 SpotBugs
+  findings, `BUILD SUCCESS` (`docs/evidence/2026-07-14-phase10-mfc-seam.md`).
+- [x] The numbered functional test suite is executed and reported —
+  `docs/executed-test-report.md`: FT-01–FT-19, 19 Passed, 0 Failed, 0
+  Blocked, 0 Not Applicable.
+- [x] SQL, logs, reports, screenshots, and label evidence are retained —
+  `docs/evidence/` (SQL: `docs/sql-diagnostics.md` query results cited
+  throughout; logs: Phase 9 evidence; screenshots/labels: Phase 8 evidence
+  subfolder `docs/evidence/2026-07-14-phase8-steps0-2/`).
+- [ ] A fresh-machine or clean-environment runbook rehearsal succeeds —
+  **not yet performed**; this workstation already has the full toolchain
+  installed, so `docs/runbook.md` has not been rehearsed on a genuinely
+  clean machine in this session (recorded as a residual item in the Phase 9
+  and Phase 10 evidence). Remains open pending an actual clean-environment
+  rehearsal.
+- [x] The portfolio explicitly demonstrates SQL, Java, configuration,
+  functional testing, log analysis, and operational documentation — SQL
+  (`docs/sql-diagnostics.md`), Java/Spring (the full `/api/v1` + dashboard +
+  label + MFC-seam implementation), configuration
+  (`docs/configuration-matrix.md`, FT-15), functional testing
+  (`docs/functional-test-specification.md`, `docs/executed-test-report.md`),
+  log analysis (`docs/log-analysis-guide.md`, FT-16), operational
+  documentation (`docs/runbook.md`, `docs/incident-record-template.md`).
 
 ## Progress tracking rules
 

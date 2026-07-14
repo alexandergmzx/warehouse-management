@@ -37,3 +37,7 @@ wms:
     stuck-threshold: ${WMS_TASK_STUCK_THRESHOLD:PT30M}
   auth:
     token-ttl: ${WMS_AUTH_TOKEN_TTL:PT8H}
+  dashboard:
+    poll-interval: ${WMS_DASHBOARD_POLL_INTERVAL:PT2S}
+  mfc:
+    adapter: ${WMS_MFC_ADAPTER:noop}

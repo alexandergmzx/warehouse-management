@@ -1,6 +1,6 @@
 # HHT and administration REST contract
 
-**Status: accepted design specification; implementation is the Phase 7 deliverable.**
+**Status: the `/api/v1` HHT/admin surface (Phase 7) is implemented and evidenced; the label and dashboard endpoints (Phase 8) below are implementation in progress.**
 Contract version: `v1`  
 Base URL on the LAN: `http://<wms-host>:8080/api/v1`  
 Media type: `application/json`  
@@ -458,6 +458,16 @@ Response `201 Created`:
 ```
 
 Errors include `404 ARTICLE_NOT_FOUND`, `404 LOCATION_NOT_FOUND`, `409 NEGATIVE_RESULTING_STOCK`, and `422 VALIDATION_FAILED`.
+
+### `GET /admin/labels/locations/{code}/png`, `GET /admin/labels/locations/{code}/pdf`
+
+### `GET /admin/labels/articles/{sku}/png`, `GET /admin/labels/articles/{sku}/pdf`
+
+Printable QR labels per ADR 0007. The PNG is a deterministic 300×300 image (error correction M, four-module quiet zone, black-on-white) encoding the exact `LOC:<code>` or `ART:<sku>` payload the HHT scan endpoints accept. The PDF is a single-label A4 sheet with the same QR code plus human-readable text ("Location \<code\>" / "Article \<sku\>") in an embedded, licence-vendored font (`src/main/resources/fonts/liberation-sans/`). Both formats are byte-identical across repeated generation for the same code/SKU. Responses are `image/png` or `application/pdf`; errors are `404 LOCATION_NOT_FOUND` or `404 ARTICLE_NOT_FOUND`.
+
+## Admin dashboard (not part of `/api/v1`)
+
+`GET /dashboard` is a server-rendered, session-authenticated page (form login at `GET`/`POST /login`, `ADMIN` role only) showing live task state: task number, state, order, line, location, article, quantity, assigned user/device, last transition time, and a stuck flag (per `wms.task.stuck-threshold`). It embeds a small script that polls `GET /dashboard/api/tasks` (same JSON shape as `GET /admin/tasks`, no filters) every `wms.dashboard.poll-interval` (default 2 s) and replaces the table body without a full page reload. This session/cookie/CSRF-protected surface is separate from the stateless `/api/v1` bearer-token API (ADR 0007); unauthenticated requests redirect to `/login`, and an authenticated non-admin user receives `403`.
 
 ## Health endpoint
 

@@ -1,6 +1,8 @@
 # MVP requirements-to-test traceability
 
-**Status:** Accepted design specification; execution evidence pending  
+**Status:** Accepted design specification. Execution evidence for FT-01–FT-18
+is retained in `docs/evidence/`; see `docs/executed-test-report.md` for the
+aggregated status.  
 **Date:** 2026-07-13  
 **Authority:** `PLAN.md`, Phase 3 decision packet, and accepted ADRs
 

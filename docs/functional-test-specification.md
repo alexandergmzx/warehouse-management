@@ -1,8 +1,10 @@
 # MVP functional test specification
 
-**Status:** Approved design specification; execution pending implementation  
+**Status:** Approved design specification. FT-01–FT-18 executed and passed,
+FT-19 intentionally blocked pending Phase 10 — see
+`docs/executed-test-report.md` for the aggregated, evidence-cited results.  
 **Date:** 2026-07-13  
-**Related:** `docs/requirements-traceability.md`
+**Related:** `docs/requirements-traceability.md`, `docs/executed-test-report.md`
 
 ## Test data and evidence
 

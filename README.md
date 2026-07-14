@@ -4,23 +4,20 @@ A Java 21 / Spring Boot proof of concept focused on warehouse picking, SQL diagn
 
 ## Current status
 
-**The Phase 3 design gate is approved (ADRs 0002–0008) and implementation is underway. The Phase 6 database foundation is implemented and validated; the Phase 7 HHT/admin REST API is the next deliverable.**
+**All ten phases (5 through 10) are implemented, evidenced, and their acceptance gates are checked. `docs/executed-test-report.md` reports all of FT-01–FT-19 as Passed.**
 
-Validated on the approved baseline (evidence: `docs/evidence/2026-07-13-phase6-maven-verify.md`):
+Delivered and evidenced (see `docs/evidence/` and `docs/executed-test-report.md`):
 
 - Flyway-owned PostgreSQL schema with the approved order/line/task states, constraints, and append-only `stock_movement` and `task_transition` ledgers;
-- deterministic development fixtures with released, stuck, and completed demonstration orders;
-- migration/integrity integration tests against the digest-pinned `postgres:17.10-alpine` image;
-- Checkstyle and SpotBugs quality gates in `mvn verify`.
+- the full `/api/v1` HHT and admin REST surface (`API.md`): authentication, FIFO claim/scan/confirm, admin order/task/catalog/stock endpoints;
+- QR location/article labels (deterministic PNG/A4 PDF) and a session-authenticated, polling admin dashboard (Phase 8);
+- preprod startup validation with a safe diagnostic, structured JSON operational logging, and the configuration matrix/runbook/log-analysis-guide/incident-record-template documentation set (Phase 9);
+- the `OrderCompletionPublisher` MFC extension seam and its no-op adapter, with documented (not implemented) future TCP boundaries (Phase 10);
+- migration/integrity/API/concurrency/idempotency/recovery integration tests against the digest-pinned `postgres:17.10-alpine` image, plus Checkstyle and SpotBugs, all in `mvn verify`.
 
-Not yet implemented or still provisional:
+The one open item across the whole plan is a fresh-machine/clean-environment rehearsal of `docs/runbook.md` — recorded as a residual item, not yet performed on a genuinely clean machine.
 
-- HHT/admin REST controllers, services, and authentication (Phase 7);
-- live dashboard and QR labels (Phase 8);
-- CI hardening, runbooks, and executed functional-test evidence (Phase 9);
-- MFC extension seam (Phase 10).
-
-See `PLAN.md` for the remaining gates and progress rules.
+See `PLAN.md` for details and progress rules.
 
 ## Prerequisites — owner managed
 
@@ -37,7 +34,7 @@ docker compose version
 
 ## Start the development database and application
 
-Docker Compose is the approved development route (ADR 0002); the image is pinned by immutable digest. The application currently starts with the database foundation only — REST endpoints arrive with Phase 7. Record first-start evidence per ADR 0006.
+Docker Compose is the approved development route (ADR 0002); the image is pinned by immutable digest. Record first-start evidence per ADR 0006.
 
 1. Optionally copy `.env.example` to `.env` and change development-only database values. Both Docker Compose and the Spring `dev` profile read this file.
 2. Start PostgreSQL:
@@ -112,8 +109,10 @@ The default profile is `dev`. It adds `db/devdata` to Flyway and therefore insta
 | `WMS_SERVER_PORT` | `8080` | API and dashboard port |
 | `WMS_TASK_STUCK_THRESHOLD` | `PT30M` | Active-state age treated as stuck |
 | `WMS_AUTH_TOKEN_TTL` | `PT8H` | HHT token lifetime |
+| `WMS_DASHBOARD_POLL_INTERVAL` | `PT2S` | Admin dashboard client-side polling interval |
+| `WMS_MFC_ADAPTER` | `noop` | Selects the `OrderCompletionPublisher` adapter; `noop` is the only implemented value |
 
-Local secrets belong in `.env` or process environment variables, never committed files. Only the application port will be opened to the LAN in the installation runbook; Compose binds PostgreSQL to `127.0.0.1` deliberately.
+Local secrets belong in `.env` or process environment variables, never committed files. Only the application port will be opened to the LAN in the installation runbook; Compose binds PostgreSQL to `127.0.0.1` deliberately. `docs/configuration-matrix.md` is the authoritative, complete reference (owner, sensitivity, environment, restart requirement for every parameter); the table above is a quick-start subset.
 
 ## Docker Compose versus native PostgreSQL on Windows
 
@@ -124,12 +123,16 @@ A native PostgreSQL 17 installation remains the documented fallback. It starts f
 ## Key documents
 
 - `PLAN.md` — phased delivery plan and acceptance gates.
-- `API.md` — accepted HHT/admin REST contract (implementation is Phase 7).
+- `API.md` — the implemented and evidenced HHT/admin REST contract, plus the Phase 8 label and dashboard endpoints.
+- `docs/configuration-matrix.md` — every parameter's owner, default, sensitivity, environment, and restart requirement.
+- `docs/runbook.md` — clean-environment Windows install, firewall scoping, LAN/HHT check, and rollback.
 - `docs/sql-diagnostics.md` — stuck-task, ledger-reconciliation, and order-trace SQL.
+- `docs/log-analysis-guide.md` — structured-log field reference and worked diagnosis examples.
+- `docs/incident-record-template.md` — the template for recording a real operational incident.
 - `docs/architecture.md` — module boundaries, transactions, and the MFC seam.
 - `docs/decisions/` — ADRs 0001–0008; ADR 0002 records the approved technology baseline.
 - `docs/evidence/` — retained runtime and test evidence per build/configuration identifier.
-- `docs/functional-test-specification.md` and `docs/requirements-traceability.md` — numbered cases and requirement mapping.
+- `docs/functional-test-specification.md`, `docs/requirements-traceability.md`, and `docs/executed-test-report.md` — numbered cases, requirement mapping, and aggregated pass/fail/blocked status for FT-01–FT-19.
 - `docs/research/` — Phase 2/3 research, decision packet, and validation log.
 
 ## Repository layout
