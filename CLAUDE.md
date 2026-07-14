@@ -2,27 +2,30 @@
 
 This file is the single canonical source of repository-wide working rules for
 every assistant and editor used on this project — Claude, GitHub Copilot,
-IntelliJ IDEA, VS Code, or any other tool. `.github/copilot-instructions.md`
-is a short pointer to this file plus a safety-net subset for tools that only
-auto-load from that path; it must not carry its own copy of these rules. If
-you edit a rule, edit it here only.
+IntelliJ IDEA, VS Code, or any other tool. If you edit a rule, edit it here
+only.
 
 ## Source of truth
 
-1. Read `PLAN.md` before proposing or making project changes — its "Plan status" section is the live record of the current phase, gate, and authorization state. Do not assume any phase/gate snapshot elsewhere (including in this file) is still current without checking it.
-2. Treat any artifact belonging to a phase that `PLAN.md` has not marked implemented and evidenced as a provisional draft, regardless of whether it currently compiles or runs.
-3. A compiling file, a passing build, or prior generated output is not by itself accepted design or a completed phase; only the evidence recorded in `PLAN.md` and `docs/evidence/` counts.
-4. Architecture decisions belong in ADRs (`docs/decisions/`); testable requirements belong in `docs/requirements-traceability.md` and `docs/functional-test-specification.md`.
+1. `README.md` is the live record of project status, delivered scope, and
+   the documentation index. `docs/executed-test-report.md` and
+   `docs/evidence/` are the record of what has actually been verified —
+   a compiling file, a passing build, or prior generated output is not by
+   itself completed or accepted work; only retained, citable evidence
+   counts.
+2. Architecture decisions belong in ADRs (`docs/decisions/`); testable
+   requirements belong in `docs/requirements-traceability.md` and
+   `docs/functional-test-specification.md`.
+3. All ten delivery phases of this PoC are implemented and evidenced; there
+   is no further phase gate pending. Changes from here on are maintenance,
+   extension, or new scope — evaluate each against the workflow invariants
+   and rules below rather than against a phase plan.
 
 ## Current authorization boundary
 
-Stable rules that hold regardless of the current phase:
-
 - The project owner installs and manages all system tools (Java, Maven, Docker, PostgreSQL, IDE plugins/extensions) independently. Do not install or download them.
-- Do not implement, refactor, delete, or extend an artifact belonging to a phase `PLAN.md` has not marked implemented and evidenced.
-- Once a phase is implemented and evidenced, its normal build/test/migration commands (e.g. `mvn verify` with Testcontainers) are the accepted workflow for that phase — this is not by itself authorization to extend a later, still-gated phase.
 - Planning, research, comparison, review, and documentation proposals are always allowed.
-- Ask before crossing a gate recorded in `PLAN.md` or altering a confirmed workflow rule below.
+- Ask before altering a confirmed workflow rule below, changing a pinned tool version without a new/updated ADR, or making a change whose blast radius extends beyond this repository.
 
 ## Research standards
 
@@ -63,7 +66,7 @@ Unless the project owner explicitly changes it:
 ## Data and configuration rules
 
 - Flyway owns the schema; Hibernate may validate but must not create or update it.
-- Never edit an applied migration. The V1 baseline was replaced once, pre-application, per D-14/ADR 0002; once a migration has been applied to any retained environment it is immutable — fix forward with a new versioned migration, and never use `flyway repair` to conceal checksum drift.
+- Never edit an applied migration. Once a migration has been applied to any retained environment it is immutable — fix forward with a new versioned migration, and never use `flyway repair` to conceal checksum drift.
 - Keep common schema migrations separate from development fixtures and known demo credentials.
 - Keep preproduction credentials external and never commit secrets or bearer tokens.
 - Every stock-changing transaction must lock/update stock and append exactly one matching movement.
@@ -83,5 +86,4 @@ Unless the project owner explicitly changes it:
 - Prefer the smallest approved change and avoid unrelated reformatting.
 - Update documentation, diagnostics, tests, and configuration references with behavioral changes.
 - Record failed experiments and unresolved risks rather than hiding them.
-- Before implementation, classify provisional artifacts as keep, revise, replace, or remove.
-- Stop and ask for approval when a request would cross the current plan gate or alter a confirmed workflow rule.
+- Stop and ask for approval before altering a confirmed workflow rule above or making a change with effects beyond this repository.

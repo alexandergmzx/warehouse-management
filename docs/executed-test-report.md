@@ -68,3 +68,26 @@ completed the same day).
 
 **Combined FT-01–FT-19 status: 19 Passed, 0 Failed, 0 Blocked, 0 Not
 Applicable.**
+
+## Final acceptance sweep: 2026-07-14
+
+**Build/configuration identifier:** git HEAD `f3cdee0`. Full details:
+`docs/evidence/2026-07-14-final-acceptance-sweep.md`.
+
+Re-confirms `mvn -B verify` (33/33 tests, 0 Checkstyle, 0 SpotBugs) on the
+same commit, then closes the two items still open after the Phase 10 pass:
+
+| Item | Result |
+|---|---|
+| Phase 6 residual: SQL diagnostic pack executed against a running dev database | All four queries return results matching documented expectations (stuck task, zero stock/ledger discrepancy, full DEMO-1003 trace, integrity overview) |
+| Final-acceptance item: runbook rehearsal, evidenced | Fresh `git clone` → `mvn package -DskipTests` → packaged jar started in `preprod` profile against a freshly created empty database → health `UP`; only the schema migration applied, zero demo users, no secret leakage. Recorded caveat: pre-installed toolchain (not a literal fresh machine); firewall/cross-machine LAN steps excluded as out of scope |
+
+Also exercised, live, beyond the existing automated suite: HHT login/claim/
+logout, dashboard session login and polling (including the `stuck` flag
+matching diagnostic query 1), byte-identical label regeneration against the
+retained Phase 8 sample, structured-log-to-ledger correlation-ID matching,
+and preprod fail-fast on both a missing variable and the committed dev
+password.
+
+**No new FT status changes** (all 19 cases already Passed); this pass closes
+the plan's open acceptance items rather than re-testing functional cases.

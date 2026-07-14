@@ -4,7 +4,7 @@
 is retained in `docs/evidence/`; see `docs/executed-test-report.md` for the
 aggregated status.  
 **Date:** 2026-07-13  
-**Authority:** `PLAN.md`, Phase 3 decision packet, and accepted ADRs
+**Authority:** `README.md`, `docs/research/phase-3-decision-packet.md`, and accepted ADRs
 
 | ID | Requirement/invariant | Primary evidence | Planned test IDs |
 |---|---|---|---|
