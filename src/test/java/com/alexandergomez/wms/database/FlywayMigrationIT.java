@@ -44,7 +44,7 @@ class FlywayMigrationIT {
 
     @Test
     void appliesAllMigrationsAndSeedsDemoScenarios() throws SQLException {
-        assertEquals(2, queryForLong("SELECT count(*) FROM flyway_schema_history WHERE success"));
+        assertEquals(3, queryForLong("SELECT count(*) FROM flyway_schema_history WHERE success"));
         assertEquals(3, queryForLong("SELECT count(*) FROM customer_order"));
         assertEquals(5, queryForLong("SELECT count(*) FROM picking_task"));
         assertEquals(11, queryForLong("SELECT count(*) FROM task_transition"));
@@ -75,7 +75,7 @@ class FlywayMigrationIT {
               AND t.status = 'COMPLETED'
               AND m.quantity_delta = -2
             """));
-        assertEquals(2, queryForLong("""
+        assertEquals(3, queryForLong("""
                 SELECT count(*)
                 FROM app_user
                 WHERE password_hash LIKE '$argon2id$%'

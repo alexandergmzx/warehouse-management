@@ -123,7 +123,7 @@ Docker Compose is the approved development route (ADR 0002); the image is pinned
    docker compose exec postgres psql -U wms -d wms
    ```
 
-Development seed users are `admin` / `admin123` and `picker01` / `picker123`. They exist only to support the PoC and must not be reused outside development.
+Development seed users are `admin` / `admin123`, `picker01` / `picker123`, and `picker02` / `2468` (numeric password for the HandheldPi PIN-pad login; its badge QR `OP:picker02` supplies the username). Seed devices are `HHT-PI-01` (physical handheld) and `HHT-DEV-01` (developer loopback client). They exist only to support the PoC and must not be reused outside development.
 
 ## Build and test
 

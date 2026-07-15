@@ -91,3 +91,31 @@ password.
 
 **No new FT status changes** (all 19 cases already Passed); this pass closes
 the plan's open acceptance items rather than re-testing functional cases.
+
+## Execution pass: 2026-07-15 (HHT loopback integration — first real client)
+
+**Build/configuration identifier:** git HEAD `494a760` plus the
+`V1_2__seed_hht_demo_picker.sql` working tree; HandheldPi repo HEAD `512ef48`
+plus its Phase 3 working tree. Full details:
+`docs/evidence/2026-07-15-hht-loopback-integration.md`.
+
+The HandheldPi client (real `HttpWmsClient` + sqlite offline queue + picking
+state machine) ran end-to-end against a live dev instance on this machine —
+the first external client ever to exercise the `/api/v1` HHT surface. WiFi
+loss simulated by killing a local TCP proxy; 44/44 driver checks passed;
+post-run SQL reconciliation clean (0 stock/ledger mismatches, exactly one
+`PICK` movement per completed task).
+
+| ID | Case (re-exercised over a real client) | Status | Evidence |
+|---|---|---|---|
+| FT-01 | Login with valid picker/device and logout (badge+PIN → `picker02`/`HHT-DEV-01`) | Passed | evidence §3 case 1 |
+| FT-04 | One-active-task and `DEVICE_ASSIGNMENT_CONFLICT` on a busy device | Passed | evidence §3 case 8 |
+| FT-05 | Wrong location / wrong article / out-of-order scans | Passed | evidence §3 case 2 |
+| FT-06 | Correct scans in order, replay-safe redelivery | Passed | evidence §3 cases 1, 6 |
+| FT-07 | Non-exact quantity rejected (`422 QUANTITY_MISMATCH`) | Passed | evidence §3 case 3 |
+| FT-08 | Confirm exact quantity; same-UUID retry idempotent; reuse rejected | Passed | evidence §3 case 4 |
+| FT-10 | Admin block/resume recovery loop after a rejected offline replay | Passed | evidence §3 case 7 |
+| — | New client-side coverage: Level 2 offline store-and-forward, dead-letter + SYNC_FAILED, token-revocation re-login, claim/logout guards, correlation-ID join device↔server | Passed | evidence §3 cases 4, 6, 7, 9, 10 |
+
+Residual: Stage 3 (physical GamePi20 over WiFi, runbook §3–4 firewall
+exercise) remains open — requires the device and the owner at the LAN.
