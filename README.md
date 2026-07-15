@@ -13,7 +13,7 @@ Built to exercise the skills of an application configuration & testing / support
 | Configuration and parameterization discipline | `docs/configuration-matrix.md` (every parameter's owner, default, sensitivity, environment, restart requirement); preprod startup validation that fails fast and safely on missing or unsafe config |
 | Functional test specification and execution | `docs/functional-test-specification.md` (19 numbered cases) and `docs/executed-test-report.md` (recorded pass/fail/blocked status with evidence citations, not just "it compiles") |
 | Log-based diagnosis | `docs/log-analysis-guide.md` — structured JSON logs correlatable by request, order, task, user/device, article, location, and movement, without exposing credentials |
-| Installation, operation, rollback, and incident documentation | `docs/runbook.md` (clean-environment install, LAN firewall scoping, rollback), `docs/incident-record-template.md` |
+| Installation, operation, rollback, and incident documentation | `docs/runbook-windows.md` (clean-environment install, LAN firewall scoping, rollback), `docs/incident-record-template.md` |
 | HHT (handheld terminal) integration pattern | The HHT is treated as a separate LAN REST client (`API.md`); a scoped firewall rule exposes only the API port, never the database |
 | Extension seam for a flow-control / MFC layer | `OrderCompletionPublisher` port + no-op adapter (`docs/architecture.md`, ADR 0007) — a documented seam for a future material-flow-control integration, not a live TCP implementation |
 
@@ -67,9 +67,9 @@ These hold across the whole implementation and are not incidental to any one end
 
 ## Prerequisites — owner managed
 
-This project is developed on both a 64-bit Windows workstation and a Linux Mint 22 desktop (ADR 0009 amends ADR 0002 for cross-platform provisioning); the application, tests, and `compose.yaml` are unchanged and OS-neutral either way. The project owner installs and updates workstation tools:
+This project is developed on both a 64-bit Windows workstation and a Linux Mint 22 desktop (ADR 0009 amends ADR 0002 for cross-platform provisioning; ADR 0010 amends the JDK pin); the application, tests, and `compose.yaml` are unchanged and OS-neutral either way. The project owner installs and updates workstation tools:
 
-- **JDK:** latest Eclipse Temurin 21.x LTS patch (Windows: Adoptium MSI/zip installer; Linux Mint 22: Adoptium's `apt` repository, `temurin-21-jdk`).
+- **JDK:** any OpenJDK 21.x LTS distribution, at the latest patch its install channel offers (ADR 0010). Eclipse Temurin is the recommended default (Windows: Adoptium MSI/zip installer; Linux Mint 22: Adoptium's `apt` repository, `temurin-21-jdk`), but a distribution-packaged build such as Mint/Ubuntu's `openjdk-21-jdk` is equally valid. CI pins Temurin and remains the arbiter of build correctness.
 - **Maven:** none to install — the committed wrapper (`mvnw` / `mvnw.cmd`) bootstraps Maven 3.9.16 on first run. A system Maven 3.9.16 install remains equally valid if already present.
 - **Docker:** Docker Desktop with Compose v2 on Windows (virtualization enabled); Docker Engine (`docker-ce`, `docker-compose-plugin` from Docker's own `apt` repository) plus your user in the `docker` group on Linux Mint.
 
@@ -176,19 +176,21 @@ A native PostgreSQL 17 installation remains the documented fallback on either OS
 
 ## Cross-platform development
 
-This project is developed on both a Windows workstation and a Linux Mint 22 desktop. Nothing in the application, `pom.xml`, `compose.yaml`, or the test suite is OS-specific — only tool *provisioning* differs, and that is now handled either identically (the Maven Wrapper) or via matched per-OS steps (JDK, Docker). See ADR 0009 (`docs/decisions/0009-cross-platform-developer-provisioning.md`) for the full rationale, and `docs/runbook-linux.md` for the Linux Mint 22 counterpart to `docs/runbook.md`.
+This project is developed on both a Windows workstation and a Linux Mint 22 desktop. Nothing in the application, `pom.xml`, `compose.yaml`, or the test suite is OS-specific — only tool *provisioning* differs, and that is now handled either identically (the Maven Wrapper) or via matched per-OS steps (JDK, Docker). See ADR 0009 (`docs/decisions/0009-cross-platform-developer-provisioning.md`) for the full rationale, and `docs/runbook-linux.md` for the Linux Mint 22 counterpart to `docs/runbook-windows.md`.
+
+The Linux Mint 22 machine was provisioned and the full suite executed on it on 2026-07-15: 33/33 integration tests pass with no application, schema, or dependency change, confirming that OS-neutrality claim on real hardware rather than by inspection. That run also relaxed the JDK pin to any OpenJDK 21.x LTS build (ADR 0010) and corrected two `docs/runbook-linux.md` defects found by following it literally. See `docs/evidence/2026-07-15-linux-mint-provisioning.md`, including what was *not* verified (the `ufw` rule, LAN/HHT reachability, and the `preprod` runtime rehearsal).
 
 ## Key documents
 
 - `API.md` — the implemented and evidenced HHT/admin REST contract, plus the label and dashboard endpoints.
 - `docs/configuration-matrix.md` — every parameter's owner, default, sensitivity, environment, and restart requirement.
-- `docs/runbook.md` — clean-environment Windows install, firewall scoping, LAN/HHT check, and rollback.
+- `docs/runbook-windows.md` — clean-environment Windows install, firewall scoping, LAN/HHT check, and rollback.
 - `docs/runbook-linux.md` — the Linux Mint 22 counterpart: clean-environment install, `ufw` scoping, LAN/HHT check, and rollback.
 - `docs/sql-diagnostics.md` — stuck-task, ledger-reconciliation, and order-trace SQL.
 - `docs/log-analysis-guide.md` — structured-log field reference and worked diagnosis examples.
 - `docs/incident-record-template.md` — the template for recording a real operational incident.
 - `docs/architecture.md` — module boundaries, transactions, and the MFC seam.
-- `docs/decisions/` — ADRs 0001–0009; ADR 0002 records the approved technology baseline, amended by ADR 0009 for cross-platform provisioning.
+- `docs/decisions/` — ADRs 0001–0010; ADR 0002 records the approved technology baseline, amended by ADR 0009 for cross-platform provisioning and ADR 0010 for the vendor-neutral JDK 21 pin.
 - `docs/evidence/` — retained runtime and test evidence per build/configuration identifier.
 - `docs/functional-test-specification.md`, `docs/requirements-traceability.md`, and `docs/executed-test-report.md` — numbered cases, requirement mapping, and aggregated pass/fail/blocked status for FT-01–FT-19.
 - `docs/research/` — early research, decision packet, and validation log from the design phase.

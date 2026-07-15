@@ -1,21 +1,21 @@
 # Linux Mint 22 installation, operation, and rollback runbook
 
-**Status:** counterpart to `docs/runbook.md` (Phase 9 deliverable), added under
+**Status:** counterpart to `docs/runbook-windows.md` (Phase 9 deliverable), added under
 ADR 0009 (cross-platform developer provisioning). Covers a clean Linux Mint
 22 environment running the `preprod` profile against a dedicated PostgreSQL
 instance. For day-to-day development, see the shorter `README.md` walkthrough
 (Docker Compose, `dev` profile, seeded demo data) instead — this runbook is
 the operational/production-style procedure. Every invariant, warning, and
-rollback boundary in `docs/runbook.md` applies here unchanged; only the
+rollback boundary in `docs/runbook-windows.md` applies here unchanged; only the
 shell syntax and OS-specific tooling differ.
 
 ## 1. Prerequisites (owner-managed)
 
-Per ADR 0002 as amended by ADR 0009, install and record versions
+Per ADR 0002 as amended by ADR 0009 and ADR 0010, install and record versions
 independently before starting:
 
 ```bash
-java -version      # latest Eclipse Temurin 21.x LTS (Adoptium apt repo)
+java -version      # any OpenJDK 21.x LTS distribution, latest patch (ADR 0010)
 docker --version    # only if PostgreSQL runs in a container
 docker compose version
 ```
@@ -24,8 +24,23 @@ Maven itself does not need a separate install: the committed wrapper
 (`./mvnw`) bootstraps Maven 3.9.16 on first run. If a system Maven 3.9.16 is
 already installed, that is equally valid.
 
-JDK install, if not already present (Adoptium's `apt` repository, `noble`
-component — Linux Mint 22 is based on Ubuntu 24.04):
+JDK install, if not already present. Per ADR 0010 any OpenJDK 21.x LTS build
+is acceptable, so **check first — Linux Mint 22 may already have a
+conformant JDK 21**, in which case install nothing:
+
+```bash
+java -version           # if this reports 21.x, you are done
+```
+
+If a JDK 21 is needed, the distribution package is the simplest route and
+tracks patches through the OS's own update channel:
+
+```bash
+sudo apt update && sudo apt install -y openjdk-21-jdk
+```
+
+Eclipse Temurin (the recommended default, and what CI pins) via Adoptium's
+`apt` repository, `noble` component — Linux Mint 22 is based on Ubuntu 24.04:
 
 ```bash
 sudo apt update && sudo apt install -y wget apt-transport-https gpg
@@ -33,6 +48,11 @@ wget -qO- https://packages.adoptium.net/artifactory/api/gpg/key/public | sudo gp
 echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb noble main" | sudo tee /etc/apt/sources.list.d/adoptium.list
 sudo apt update && sudo apt install -y temurin-21-jdk
 ```
+
+Installing a second JDK 21 alongside one the OS already provides leaves
+`update-alternatives` arbitrating which `java` is on `PATH`; if you do run
+both, confirm with `java -version` and `./mvnw -v` which one Maven actually
+uses.
 
 Docker install, if not already present (Docker's own `apt` repository, not
 the distribution-packaged `docker.io`):
@@ -43,6 +63,21 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 sudo usermod -aG docker "$USER"   # log out/in for the group change to take effect
 ```
+
+Confirm the daemon is actually running before any Docker-dependent step
+(Testcontainers, `compose.yaml`) — being installed is not the same as being
+up, and a stopped daemon surfaces only as
+`Cannot connect to the Docker daemon at unix:///var/run/docker.sock`:
+
+```bash
+docker info --format '{{.ServerVersion}}'   # prints a version if the daemon is up
+sudo systemctl start docker                 # if it is not
+```
+
+Whether the daemon should also start at every boot
+(`sudo systemctl enable docker`) is a machine-wide decision outside this
+runbook's scope, the same as `ufw enable` in Section 3 — decide it per
+machine rather than by default.
 
 A reachable PostgreSQL 17.10 instance (containerized or native) with an empty
 database is also required. `compose.yaml` is the documented convenience route
@@ -72,6 +107,20 @@ environment's requirements (this PoC does not itself configure database TLS).
 
    Starting with a missing or unsafe value fails fast with a clean
    diagnostic (FT-15) — see `docs/log-analysis-guide.md` if that happens.
+
+   **These exports persist for the rest of the shell session, and the test
+   suite inherits them.** `SPRING_PROFILES_ACTIVE=preprod` left set in a
+   shell that later runs `./mvnw verify` makes every integration test boot
+   under `preprod`, where the FT-15 guard refuses to start against
+   Testcontainers' generated datasource. The suite then fails with dozens of
+   `Failed to load ApplicationContext` errors whose root cause
+   (`PreprodConfigurationException`) appears only in
+   `target/failsafe-reports/`, not in the Maven summary. Run the tests from a
+   different shell, or override the inherited value for that command:
+
+   ```bash
+   env -u SPRING_PROFILES_ACTIVE ./mvnw -B verify
+   ```
 
 4. Start the application. Flyway applies `db/migration` only — no
    development fixtures, no demo credentials:

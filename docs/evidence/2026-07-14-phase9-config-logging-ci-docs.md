@@ -22,7 +22,7 @@ incident-template/executed-test-report documentation deliverables.
 | `admin.StockAdminService`, `admin.OrderAdminService` | Same, for `adjust`/`createOrder` |
 | `api.GlobalExceptionHandler` | `handleProblem` gains one centralized structured `WARN` log for **every** `ProblemException` app-wide (`problemCode`, `detail`, `extensions`) |
 | `pom.xml` | Removed `net.logstash.logback:logstash-logback-encoder` — see Deviations |
-| `docs/runbook.md`, `docs/log-analysis-guide.md`, `docs/incident-record-template.md`, `docs/executed-test-report.md` | New Phase 9 documentation deliverables |
+| `docs/runbook-windows.md`, `docs/log-analysis-guide.md`, `docs/incident-record-template.md`, `docs/executed-test-report.md` | New Phase 9 documentation deliverables |
 | tests | `PreprodConfigurationValidatorIT` (FT-15), `StructuredLoggingApiIT` (FT-16) |
 
 ### Baseline assessment confirmed correct
@@ -154,7 +154,7 @@ login password appears anywhere in the captured output.
 - **No embedded build/configuration identifier per log line** — recorded
   explicitly as a known limitation in `docs/log-analysis-guide.md`, with a
   concrete follow-up suggestion, rather than silently left out.
-- The runbook (`docs/runbook.md`) has not been rehearsed end-to-end on a
+- The runbook (`docs/runbook-windows.md`) has not been rehearsed end-to-end on a
   genuinely clean Windows environment in this session (this workstation
   already has the full toolchain installed); Section 7 of the runbook asks
   for that rehearsal's own evidence when it happens.

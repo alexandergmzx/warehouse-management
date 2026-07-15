@@ -1,6 +1,9 @@
 # Windows installation, operation, and rollback runbook
 
-**Status:** Phase 9 deliverable. Covers a clean 64-bit Windows environment
+**Status:** Phase 9 deliverable (renamed from `docs/runbook.md` to
+`docs/runbook-windows.md` by ADR 0010, for symmetry with
+`docs/runbook-linux.md`; content otherwise unchanged except the
+Docker-liveness note in Section 1). Covers a clean 64-bit Windows environment
 running the `preprod` profile against a dedicated PostgreSQL instance. For
 day-to-day development, see the shorter `README.md` walkthrough (Docker
 Compose, `dev` profile, seeded demo data) instead — this runbook is the
@@ -15,6 +18,24 @@ java -version    # Eclipse Temurin 21.0.11+
 mvn -version     # Maven 3.9.16+
 docker --version # only if PostgreSQL runs in a container
 ```
+
+Confirm Docker Desktop's engine is actually running before any
+Docker-dependent step (Testcontainers, `compose.yaml`) — installed is not
+the same as running, and a stopped/starting engine surfaces only as a
+connection error such as `error during connect: this error may indicate
+that the docker daemon is not running`:
+
+```powershell
+docker info --format "{{.ServerVersion}}"   # prints a version if the engine is up
+```
+
+If it does not, start Docker Desktop from the Start Menu (or
+`Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"`) and wait
+for the tray whale icon to report "Docker Desktop is running" before
+retrying. Whether Docker Desktop also starts at login is its own
+Settings > General toggle in Docker Desktop — a machine-wide choice outside
+this runbook's scope, the same as the firewall-rule enablement decision in
+Section 3.
 
 A reachable PostgreSQL 17.10 instance (containerized or native) with an empty
 database is also required. `compose.yaml` is the documented convenience route

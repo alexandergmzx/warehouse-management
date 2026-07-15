@@ -63,7 +63,9 @@ Testcontainers and `compose.yaml` are unchanged and already OS-neutral.
 ## Consequences
 
 - `README.md` and a new `docs/runbook-linux.md` document per-OS provisioning
-  steps; the existing Windows-specific `docs/runbook.md` is retained as-is
+  steps; the existing Windows-specific `docs/runbook-windows.md` (named
+  `docs/runbook.md` at the time of this decision; renamed for symmetry by
+  ADR 0010, content unchanged) is retained as-is
   (it is an evidenced Phase 9 deliverable) rather than rewritten.
 - `CLAUDE.md`'s tool-version reference is updated to match this ADR's
   language so the two stay consistent, per its own "edit it here only" rule

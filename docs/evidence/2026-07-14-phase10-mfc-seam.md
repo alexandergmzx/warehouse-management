@@ -124,5 +124,5 @@ verification suite passes on pinned tool versions; the numbered functional
 test suite is executed and reported; SQL, logs, reports, screenshots, and
 label evidence are retained under `docs/evidence/`. The one item not
 completed in this session is a fresh-machine/clean-environment runbook
-rehearsal (`docs/runbook.md` Section 7) — recorded as a residual item in the
+rehearsal (`docs/runbook-windows.md` Section 7) — recorded as a residual item in the
 Phase 9 evidence and still open here.

@@ -54,9 +54,9 @@ Unless the project owner explicitly changes it:
 
 ## Technology and IDE rules
 
-- Tool versions are pinned per ADR 0002 (Spring Boot 4.0.7, PostgreSQL 17.10 pinned by immutable image digest, pgJDBC 42.7.13) as amended by ADR 0009 (Temurin: latest 21.x LTS patch, floating rather than an exact build; Maven 3.9.16, provisioned via the committed wrapper rather than a manual install). Do not change a pinned version without a new/updated ADR.
+- Tool versions are pinned per ADR 0002 (Spring Boot 4.0.7, PostgreSQL 17.10 pinned by immutable image digest, pgJDBC 42.7.13) as amended by ADR 0009 (Maven 3.9.16, provisioned via the committed wrapper rather than a manual install) and ADR 0010 (JDK: any OpenJDK 21.x LTS distribution at the latest patch its channel offers — Temurin recommended, not required; CI pins Temurin). Do not change a pinned version without a new/updated ADR.
 - The project owner installs workstation tools independently (JDK, Docker, PostgreSQL, IDE); Maven is wrapper-provisioned per ADR 0009.
-- The project is developed across a Windows workstation and a Linux Mint 22 desktop; keep provisioning, scripts, and documentation OS-neutral or maintain matched per-OS variants (see `docs/runbook.md` and `docs/runbook-linux.md`) rather than assuming Windows-only.
+- The project is developed across a Windows workstation and a Linux Mint 22 desktop; keep provisioning, scripts, and documentation OS-neutral or maintain matched per-OS variants (see `docs/runbook-windows.md` and `docs/runbook-linux.md`) rather than assuming Windows-only.
 - Maven and Git are the portable sources of truth; do not depend on editor-only build behavior.
 - IntelliJ migration means importing the existing Maven repository, not generating a second project or rewriting the application.
 - Keep `.idea/`, local run configurations, workspace files, machine paths, and secrets out of version control unless a later review explicitly approves a safe shared file.
@@ -84,6 +84,7 @@ Unless the project owner explicitly changes it:
 
 ## Change discipline
 
+- Alexander Gomez is the sole author of this project. Do not add `Co-Authored-By` or any other assistant-attribution — commit trailers, code comments, doc bylines, or anywhere else in the project — an assistant is a tool here, not a co-author.
 - Prefer the smallest approved change and avoid unrelated reformatting.
 - Update documentation, diagnostics, tests, and configuration references with behavioral changes.
 - Record failed experiments and unresolved risks rather than hiding them.

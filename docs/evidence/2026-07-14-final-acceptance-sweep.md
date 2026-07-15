@@ -10,7 +10,7 @@ This sweep closes the two remaining open items recorded in `PLAN.md`'s
 
 1. Execute the SQL diagnostic pack (`docs/sql-diagnostics.md`) against a
    running development database and record results (Phase 6 residual).
-2. Perform a runbook rehearsal (`docs/runbook.md`) and retain evidence
+2. Perform a runbook rehearsal (`docs/runbook-windows.md`) and retain evidence
    (the sole unchecked Final-acceptance item).
 
 It also re-confirms the full automated gate and exercises the manual/HTTP
@@ -112,7 +112,7 @@ The rehearsal instead used a **fresh `git clone`** of the repository (new
 working copy, no `target/`, no `.env`) to exercise the actual install/build/
 run procedure rather than the developer's already-built tree.
 
-| Runbook step (`docs/runbook.md` §2, §5) | Result |
+| Runbook step (`docs/runbook-windows.md` §2, §5) | Result |
 |---|---|
 | 1. Clone repository to a clean directory | `git clone` into a fresh scratch directory (long-path support required on Windows: `git -c core.longpaths=true clone`) — confirmed no `target/`, no `.env` present after clone |
 | 2. `mvn -B package -DskipTests` | `BUILD SUCCESS`, jar produced and repackaged by Spring Boot's plugin |
