@@ -16,6 +16,15 @@
     <version>0.1.0-SNAPSHOT</version>
     <name>warehouse-management</name>
     <description>Miniature Warehouse Management System proof of concept</description>
+    <url>https://github.com/alexandergmzx/warehouse-management</url>
+
+    <licenses>
+        <license>
+            <name>Warehouse Management System Proprietary License</name>
+            <url>https://github.com/alexandergmzx/warehouse-management/blob/main/LICENSE</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <developers>
         <developer>
@@ -162,6 +171,17 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- Run explicitly before an external delivery; do not bind reports to normal builds. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.7.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>2.9.2</version>
             </plugin>
             <plugin>
                 <groupId>com.github.spotbugs</groupId>

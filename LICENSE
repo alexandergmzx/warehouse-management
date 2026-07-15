@@ -1,0 +1,14 @@
+Warehouse Management System
+Copyright (c) 2026 Alexander Gomez. All rights reserved.
+
+This repository is publicly visible for demonstration and evaluation. Except
+for the third-party materials expressly identified in THIRD_PARTY_NOTICES.md,
+no licence or permission is granted to copy, modify, distribute, sublicense,
+sell, deploy, or use the original material in this repository.
+
+Any permission to evaluate the project must be granted separately in writing
+by the copyright holder. The template in
+docs/legal/COMPANY_EVALUATION_LICENSE.template.md is not an executed grant.
+
+Third-party material remains available under its own applicable licence. See
+THIRD_PARTY_NOTICES.md and the licence texts in LICENSES/.

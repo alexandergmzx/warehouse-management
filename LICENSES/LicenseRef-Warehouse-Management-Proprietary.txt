@@ -1,0 +1,11 @@
+Warehouse Management System Proprietary Licence
+
+Copyright (c) 2026 Alexander Gomez. All rights reserved.
+
+No permission is granted to use, copy, modify, merge, publish, distribute,
+sublicense, sell, deploy, or create derivative works from the original
+Warehouse Management System material, except where the copyright holder gives
+separate prior written permission.
+
+This licence does not apply to material identified as third-party material in
+THIRD_PARTY_NOTICES.md. That material is governed by its own licence.
