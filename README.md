@@ -196,6 +196,7 @@ The Linux Mint 22 machine was provisioned and the full suite executed on it on 2
 - `API.md` — the implemented and evidenced HHT/admin REST contract, plus the label and dashboard endpoints.
 - `PLAN.md` — the approved MFC work package: telegram contract, sender, mission endpoints, and acceptance gates.
 - `handheld-plan.md` — the HandheldPi LAN integration plan (contract adaptation, offline queue, evidence).
+- `docs/backlog.md` — candidate backlog: recorded limitations, inspection findings, and industry-grounded extension candidates, tiered and sourced; nothing in it is authorized scope.
 - `docs/configuration-matrix.md` — every parameter's owner, default, sensitivity, environment, and restart requirement.
 - `docs/runbook-windows.md` — clean-environment Windows install, firewall scoping, LAN/HHT check, and rollback.
 - `docs/runbook-linux.md` — the Linux Mint 22 counterpart: clean-environment install, `ufw` scoping, LAN/HHT check, and rollback.
