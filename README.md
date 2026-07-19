@@ -15,7 +15,7 @@ Built to exercise the skills of an application configuration & testing / support
 | Log-based diagnosis | `docs/log-analysis-guide.md` — structured JSON logs correlatable by request, order, task, user/device, article, location, and movement, without exposing credentials |
 | Installation, operation, rollback, and incident documentation | `docs/runbook-windows.md` (clean-environment install, LAN firewall scoping, rollback), `docs/incident-record-template.md` |
 | HHT (handheld terminal) integration pattern | The HHT is treated as a separate LAN REST client (`API.md`); a scoped firewall rule exposes only the API port, never the database |
-| Extension seam for a flow-control / MFC layer | `OrderCompletionPublisher` port + no-op adapter (`docs/architecture.md`, ADR 0007) — the seam the approved MFC work package (`PLAN.md`) builds on; transport is chosen by ADR, not a raw TCP implementation |
+| Extension seam for a flow-control / MFC layer | `OrderCompletionPublisher` port + no-op adapter (`docs/architecture.md`, ADR 0007), plus the real `telegram` adapter the MFC work package (`PLAN.md`, ADR 0011) implements behind it — transactional outbox, dispatcher retry, WCS confirmation endpoints; transport chosen by ADR, not a raw TCP implementation |
 
 ### Screenshots
 
@@ -46,7 +46,7 @@ telegram contract `TELEGRAMS.md` is authored and owned in this repository.
 
 ## Current status
 
-All ten delivery phases are implemented and evidenced. `docs/executed-test-report.md` records **FT-01–FT-19: 19 Passed, 0 Failed, 0 Blocked, 0 Not Applicable**, and `mvn -B verify` passes on the pinned toolchain (33 integration tests, 0 Checkstyle violations, 0 SpotBugs findings). One new scope package is approved by the owner (2026-07-18, per `../ECOSYSTEM.md` v3): the **MFC work package** (telegram contract + sender + mission endpoints, TRANSPORT first, SORT stubbed) — see `PLAN.md` for its plan and acceptance gates. A final acceptance sweep (`docs/evidence/2026-07-14-final-acceptance-sweep.md`) additionally:
+All ten delivery phases are implemented and evidenced. The one new scope package approved by the owner (2026-07-18, per `../ECOSYSTEM.md` v3) — the **MFC work package** (telegram contract + sender + mission endpoints, TRANSPORT first, SORT stubbed) — is also implemented and evidenced, all five acceptance gates satisfied (`PLAN.md`). `docs/executed-test-report.md` records **FT-01–FT-24: 25 Passed, 0 Failed, 0 Blocked, 0 Not Applicable**, and `mvn -B verify` passes on the pinned toolchain (43 integration tests, 0 Checkstyle violations, 0 SpotBugs findings). A final acceptance sweep (`docs/evidence/2026-07-14-final-acceptance-sweep.md`) additionally:
 
 - executed the SQL diagnostic pack against a running development database, confirming every query's documented expected result;
 - performed a runbook rehearsal from a fresh clone — package, preprod profile against a freshly created empty database, health check, clean shutdown — confirming only the schema migration applies and no dev fixtures or secrets leak (recorded caveat: the rehearsal used a fresh clone rather than a literal fresh machine, since the pinned toolchain was already installed; the firewall-scoping and cross-machine LAN steps were out of scope for a software-only rehearsal);
@@ -74,7 +74,7 @@ These hold across the whole implementation and are not incidental to any one end
 7. The stock update, task completion, order/line progression, and movement insertion occur in one transaction.
 8. `stock_movement` and `task_transition` are append-only audit ledgers, enforced at the database level.
 9. The HHT is a separate LAN REST client, not a direct database consumer.
-10. The MFC seam stands: the approved MFC work package (`PLAN.md`) implements it behind the ADR 0007 `OrderCompletionPublisher` seam, with transport chosen by ADR; raw TCP telegram sockets remain out of scope.
+10. The MFC seam stands: the MFC work package (`PLAN.md`) implements it behind the ADR 0007 `OrderCompletionPublisher` seam, with transport chosen by ADR (ADR 0011: transactional outbox + HTTP push); raw TCP telegram sockets remain out of scope.
 
 ## Prerequisites — owner managed
 

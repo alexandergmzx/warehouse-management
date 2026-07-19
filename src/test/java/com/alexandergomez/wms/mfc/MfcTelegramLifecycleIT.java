@@ -238,6 +238,32 @@ class MfcTelegramLifecycleIT {
         assertFalse(dispatcher.dispatchNextOnce());
     }
 
+    /**
+     * Regression for the {@code @Scheduled} entry point specifically: {@link
+     * MissionDispatcher#dispatchPending()} must dispatch through the Spring
+     * proxy so each claimed mission runs inside {@code dispatchNextOnce()}'s
+     * {@code @Transactional} boundary. A plain internal {@code
+     * this.dispatchNextOnce()} call bypasses the proxy and fails the
+     * pessimistic-lock query with "No active transaction" — a failure mode
+     * the other tests miss because they invoke {@code dispatchNextOnce()}
+     * directly on the injected proxy bean.
+     */
+    @Test
+    void scheduledDispatchLoopRunsEachMissionInATransaction() throws Exception {
+        String adminToken = loginAsAdmin();
+        String sku = article(adminToken);
+        String locationCode = location(adminToken);
+        adjustStock(adminToken, sku, locationCode, 5);
+        long missionId = completeOrderAndGetMissionId(adminToken, sku, locationCode, "scheduled");
+
+        // The scheduled entry point, not the direct per-mission call: this is
+        // exactly the path the background @Scheduled trigger takes.
+        dispatcher.dispatchPending();
+
+        assertEquals("DISPATCHED", stateOf(missionId),
+                "the scheduled loop must dispatch the mission, not throw 'No active transaction'");
+    }
+
     @Test
     void wcsConfirmationLifecycle() throws Exception {
         String adminToken = loginAsAdmin();

@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -47,17 +48,28 @@ public class MissionDispatcher {
     private final MfcMissionTransitionRepository transitions;
     private final LocationRepository locations;
     private final MfcProperties properties;
+    /**
+     * Self-reference through the Spring proxy so the scheduled loop's calls to
+     * {@link #dispatchNextOnce()} honour its {@code @Transactional} boundary.
+     * A plain {@code this.dispatchNextOnce()} would be an internal invocation
+     * that bypasses the proxy, leaving the pessimistic-lock query without an
+     * active transaction. {@code @Lazy} breaks the self-referential
+     * construction cycle.
+     */
+    private final MissionDispatcher self;
     private RestClient restClient;
     private Duration retryInterval;
     private int maxAttempts;
 
     public MissionDispatcher(MfcMissionJdbcRepository claimQueue, MfcMissionRepository missions,
-            MfcMissionTransitionRepository transitions, LocationRepository locations, MfcProperties properties) {
+            MfcMissionTransitionRepository transitions, LocationRepository locations, MfcProperties properties,
+            @Lazy MissionDispatcher self) {
         this.claimQueue = claimQueue;
         this.missions = missions;
         this.transitions = transitions;
         this.locations = locations;
         this.properties = properties;
+        this.self = self;
     }
 
     @PostConstruct
@@ -74,8 +86,9 @@ public class MissionDispatcher {
 
     @Scheduled(fixedDelayString = "${wms.mfc.telegram.retry-interval:PT30S}")
     public void dispatchPending() {
-        while (dispatchNextOnce()) {
-            // drain every currently-claimable PENDING mission each tick
+        while (self.dispatchNextOnce()) {
+            // drain every currently-claimable PENDING mission each tick;
+            // each call runs in its own transaction via the proxy
         }
     }
 

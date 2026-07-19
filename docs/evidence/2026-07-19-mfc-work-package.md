@@ -72,3 +72,14 @@ controller` stand-in — is separate evidence
 (`docs/evidence/2026-07-19-mfc-transport-loop.md`), not covered by the
 Testcontainers suite above (which uses an in-process JDK stub receiver, not
 a standalone process authenticating over the real LAN-shaped flow).
+
+**Addendum:** that gate-5 run found a real defect the 42/42 pass above could
+not have caught — a `@Scheduled`/`@Transactional` self-invocation bug in
+`MissionDispatcher.dispatchPending()` (every test here called
+`dispatchNextOnce()` directly on the proxy, never exercising the scheduled
+entry point itself). Fixed by self-injecting the proxy
+(`@Lazy MissionDispatcher self`); a new regression test,
+`MfcTelegramLifecycleIT.scheduledDispatchLoopRunsEachMissionInATransaction`,
+drives the actual `@Scheduled` path. Full suite after the fix: **43/43**,
+0 Checkstyle, 0 SpotBugs. Details in
+`docs/evidence/2026-07-19-mfc-transport-loop.md`.

@@ -126,8 +126,13 @@ exercise) remains open — requires the device and the owner at the LAN.
 implementation working tree. Full details:
 `docs/evidence/2026-07-19-mfc-work-package.md`.
 
-`./mvnw -B verify`: 42/42 tests, 0 Checkstyle violations, 0 SpotBugs
-findings.
+`./mvnw -B verify`: 43/43 tests, 0 Checkstyle violations, 0 SpotBugs
+findings. (One test added after the initial 42/42 pass recorded in
+`docs/evidence/2026-07-19-mfc-work-package.md`: the live consumer-proof run
+below found a `@Scheduled`/`@Transactional` self-invocation defect the
+Testcontainers suite hadn't exercised; `MfcTelegramLifecycleIT
+.scheduledDispatchLoopRunsEachMissionInATransaction` is its regression test.
+See `docs/evidence/2026-07-19-mfc-transport-loop.md`.)
 
 | ID | Case | Status | Evidence |
 |---|---|---|---|
@@ -143,6 +148,11 @@ findings.
 **Combined FT-01–FT-24 status: 25 Passed, 0 Failed, 0 Blocked, 0 Not
 Applicable.**
 
-Residual: gate 5 (`PLAN.md`) — the consumer proof against a scripted
-`agv-fleet-controller` stand-in — is tracked separately in
-`docs/evidence/2026-07-19-mfc-transport-loop.md`.
+Gate 5 (`PLAN.md`) — the consumer proof against a scripted
+`agv-fleet-controller` stand-in (`scripts/wcs-standin/`) — is closed:
+two orders completed end-to-end against a live dev instance, telegram
+delivered and confirmed `ACCEPTED → COMPLETED`, idempotent replay and
+illegal-transition rejection verified live, zero stock/ledger discrepancies.
+Full transcript and SQL reconciliation in
+`docs/evidence/2026-07-19-mfc-transport-loop.md`. All five MFC work package
+acceptance gates are now satisfied (`PLAN.md`).

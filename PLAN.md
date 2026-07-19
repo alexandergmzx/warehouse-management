@@ -89,3 +89,30 @@ Authored and owned here; `agv-fleet-controller` pins a version.
    stand-in kept in that repo's name) consumes a TRANSPORT telegram and
    returns a confirmation end-to-end — the evidence entry cited from both
    repositories, as with the 2026-07-15 HHT loopback run.
+
+## Status: all five gates satisfied (2026-07-19)
+
+1. `TELEGRAMS.md` v1.0.0 published; fixtures load and parse (`TelegramFixturesIT`).
+2. `docs/functional-test-specification.md` FT-20–FT-24 cover emission
+   (exactly-once, none on an incomplete order), dispatch/retry/exhaustion,
+   confirmation ingestion (including idempotent replay and illegal
+   transitions), and the SORT stub.
+3. `docs/requirements-traceability.md` R-21–R-25 added; evidence in
+   `docs/evidence/2026-07-19-mfc-work-package.md` and
+   `docs/evidence/2026-07-19-mfc-transport-loop.md`.
+4. `mvn -B verify`: 43/43 tests, 0 Checkstyle, 0 SpotBugs
+   (`docs/evidence/2026-07-19-mfc-work-package.md`).
+5. Consumer proof executed against `scripts/wcs-standin/wcs_standin.py`
+   (acting in `agv-fleet-controller`'s name, per this gate's own allowance):
+   two orders completed end-to-end, telegram delivered, `ACCEPTED` →
+   `COMPLETED` confirmed, idempotent replay and illegal-transition rejection
+   verified live, zero stock/ledger discrepancies
+   (`docs/evidence/2026-07-19-mfc-transport-loop.md`). That run also found
+   and fixed a real defect (a `@Scheduled`/`@Transactional` self-invocation
+   bug the Testcontainers suite could not have caught) — recorded in the
+   evidence file per the "record failed experiments" rule, not folded in
+   silently.
+
+`agv-fleet-controller` itself remains out of ecosystem sequencing scope
+(`../ECOSYSTEM.md` step 3) — the stand-in is the approved substitute until it
+exists, per this gate's own wording.
