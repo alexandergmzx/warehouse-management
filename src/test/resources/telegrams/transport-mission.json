@@ -1,0 +1,11 @@
+{
+  "missionId": 1042,
+  "eventId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "missionType": "TRANSPORT",
+  "orderId": 501,
+  "orderNumber": "ORD-2026-0501",
+  "sourceLocationCode": "MFC-90-01",
+  "destinationLocationCode": "MFC-90-02",
+  "state": "DISPATCHED",
+  "dispatchedAt": "2026-07-19T14:32:07Z"
+}
