@@ -338,3 +338,51 @@ LEFT JOIN (
 ) m USING (article_id, location_id)
 WHERE s.quantity <> COALESCE(m.quantity, 0);
 ```
+
+## 5. Trace an MFC mission (ADR 0011, TELEGRAMS.md)
+
+Purpose: reconstruct one mission's full lifecycle — the outbox row, its
+dispatch bookkeeping, and the append-only transition ledger — when a
+telegram appears undelivered or a WCS confirmation is disputed. Only
+meaningful when the `telegram` adapter is (or was) active; under the default
+`noop` adapter these tables stay empty.
+
+```sql
+SELECT
+    mm.id AS mission_id,
+    mm.mission_type,
+    mm.state,
+    mm.order_number,
+    mm.event_id,
+    ls.code AS source_location,
+    ld.code AS destination_location,
+    mm.attempts,
+    mm.next_attempt_at,
+    mm.last_error,
+    mm.created_at
+FROM mfc_mission mm
+JOIN location ls ON ls.id = mm.source_location_id
+JOIN location ld ON ld.id = mm.destination_location_id
+WHERE mm.order_number = 'DEMO-1003'   -- or: WHERE mm.id = <mission-id>
+ORDER BY mm.id;
+
+SELECT previous_state, new_state, reason, correlation_id, occurred_at
+FROM mfc_mission_transition
+WHERE mfc_mission_id = (SELECT id FROM mfc_mission WHERE order_number = 'DEMO-1003')
+ORDER BY occurred_at, id;
+```
+
+Reading the result: a healthy delivered mission shows `PENDING → DISPATCHED
+→ ACCEPTED → COMPLETED` with no gaps; a mission stuck in `PENDING` with
+rising `attempts` and a populated `last_error`/`next_attempt_at` means the
+WCS is unreachable (the dispatcher is still retrying); `FAILED` with a
+`PENDING → FAILED` transition means dispatch retries were exhausted —
+operator attention, not silent data loss. `event_id` joins the row to the
+telegram the WCS received, and `correlation_id` joins each transition back
+to the structured logs (`docs/log-analysis-guide.md`). `mfc_mission_transition`
+is append-only (database-trigger enforced), like the other two ledgers.
+
+Do not repair a mission with direct SQL. A `FAILED` mission after a WCS
+outage is redelivered by agreement with the WCS side (the `eventId`
+idempotency key makes redelivery safe), and the incident is recorded per
+`docs/incident-record-template.md`.

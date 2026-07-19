@@ -94,7 +94,7 @@ El personal operativo no necesita conocer estos términos para preparar pedidos:
 | Outbox | Patrón para guardar un evento junto con la transacción y enviarlo después de forma confiable |
 | Store-and-forward | Guardar acciones durante una interrupción y enviarlas en orden cuando vuelve la conexión |
 | Dead letter | Acción rechazada que se conserva para investigar y no se reintenta automáticamente |
-| Telegrama | Mensaje con formato acordado entre sistemas industriales; el proyecto todavía no implementa telegramas MFC |
+| Telegrama | Mensaje con formato acordado entre sistemas industriales; el WMS envía telegramas de misión MFC según el contrato `TELEGRAMS.md` cuando el adaptador `telegram` está activo |
 | Gobierno | Reglas que definen quién decide, quién ejecuta y cómo se demuestra una decisión |
 | Control | Medida destinada a reducir o detectar un riesgo |
 | Riesgo residual | Riesgo que permanece después de aplicar controles |
@@ -106,7 +106,7 @@ El personal operativo no necesita conocer estos términos para preparar pedidos:
 | Base de datos | Lugar donde el sistema conserva su información estructurada |
 | Correlation ID | Identificador que ayuda a soporte a seguir una solicitud en los registros |
 | WMS | Siglas en inglés de sistema de gestión de almacén |
-| MFC | Posible sistema futuro para controlar el flujo de materiales; no está implementado en este proyecto |
+| MFC | Control de flujo de materiales: el WMS emite misiones TRANSPORT hacia el controlador de flota (WCS) y recibe confirmaciones por REST (ADR 0011, `TELEGRAMS.md`); desactivado por defecto (`noop`) |
 
 Cuando uno de estos términos sea necesario, el supervisor o soporte deberá explicar
 la acción concreta que necesita del preparador.

@@ -41,6 +41,12 @@ add `stack_trace`.
 | `task resumed` | `picking.PickingService` | INFO | `taskId`, `taskNumber`, `adminUserId` | `POST /admin/tasks/{id}/resume` |
 | `stock adjusted` | `admin.StockAdminService` | INFO | `articleSku`, `locationCode`, `quantityDelta`, `resultingQuantity`, `adminUserId` | `POST /admin/stock/adjustments` |
 | `order created` | `admin.OrderAdminService` | INFO | `orderNumber`, `lineCount`, `taskCount`, `adminUserId` | `POST /admin/orders` |
+| `order completion published (no-op adapter)` | `mfc.NoopOrderCompletionPublisher` | INFO | `eventId`, `orderNumber` | Order completed under the default `noop` adapter (ADR 0007) |
+| `MFC TRANSPORT mission queued for dispatch` | `mfc.TelegramOrderCompletionPublisher` | INFO | `eventId`, `orderNumber` | Order completed under the `telegram` adapter (ADR 0011): the outbox row was written in the completing transaction |
+| `MFC mission dispatched` | `mfc.MissionDispatcher` | INFO | `missionId`, `eventId`, `attempts` | Telegram POSTed to the WCS and acknowledged 2xx |
+| `MFC mission dispatch failed; retry scheduled` | `mfc.MissionDispatcher` | INFO | `missionId`, `attempts`, `error` | One failed delivery attempt; mission stays `PENDING` with `next_attempt_at` set |
+| `MFC mission dispatch exhausted; marked FAILED` | `mfc.MissionDispatcher` | WARN | `missionId`, `eventId`, `attempts`, `error` | `WMS_MFC_TELEGRAM_MAX_ATTEMPTS` reached — the operator-attention signal for a dead WCS link |
+| `MFC mission confirmed` | `mfc.MissionConfirmationService` | INFO | `missionId`, `previousState`, `newState`, `wcsOccurredAt` | WCS confirmation applied via `POST /api/v1/mfc/missions/{id}/confirmations` (idempotent replays do **not** log this line) |
 | `business rule violation` | `api.GlobalExceptionHandler` | WARN | `problemCode`, `detail`, `extensions` (nested object; carries `taskId`/`expectedLocationCode`/`scannedQrValue` for `WRONG_LOCATION`/`WRONG_ARTICLE`, empty for most other codes) | **Every** `ProblemException` app-wide — this is the single log point for wrong-scan and business-rule incidents (Phase 9 acceptance gate) |
 | `Unhandled exception` | `api.GlobalExceptionHandler` | ERROR | `stack_trace` | A genuine bug (`500 INTERNAL_ERROR`), not a business-rule rejection |
 | Preprod startup failure | n/a (Boot's own failure-analysis banner) | ERROR | `Description`/`Action` text only | FT-15 — see below |
@@ -79,6 +85,10 @@ Get-Content app.log | ForEach-Object { $_ | ConvertFrom-Json } |
 jq 'select(.message == "business rule violation")' app.log
 jq 'select(.correlationId == "<uuid>")' app.log
 jq 'select(.message == "stock adjusted") | {articleSku, quantityDelta, resultingQuantity, adminUserId}' app.log
+
+# Full MFC mission lifecycle for one mission (queue -> dispatch -> confirm),
+# then cross-check database state with docs/sql-diagnostics.md §5
+jq 'select(.missionId == 42 or (.message | startswith("MFC")))' app.log
 ```
 
 ## Diagnosing FT-15: a preprod instance that will not start

@@ -171,8 +171,8 @@ evidencia y no sustituir hardware o red real con una prueba automática.
 ### Desarrollo e integración
 
 Deben proteger reglas de negocio, contrato, idempotencia, transacciones y secretos.
-Una integración HHT debe probar trabajo sin conexión. MFC real requiere una nueva
-decisión y autorización.
+Una integración HHT debe probar trabajo sin conexión. Un cambio del transporte o
+del contrato MFC exige revisar ADR 0011 y `TELEGRAMS.md` y una decisión nueva.
 
 ### Gobierno, seguridad y auditoría
 

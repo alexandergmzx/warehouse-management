@@ -128,7 +128,9 @@ Una implementación más corta no justifica romper estos límites.
 7. Existencias, movimiento, tarea, línea y orden cambian en una transacción.
 8. Los movimientos y transiciones son históricos e inmutables.
 9. La terminal usa REST y nunca accede directamente a PostgreSQL.
-10. MFC es una extensión futura; no existe transporte TCP implementado.
+10. La integración MFC vive detrás del puerto de finalización; el transporte
+    lo fija un ADR (hoy: outbox + HTTP, ADR 0011) y un socket TCP crudo
+    sigue fuera de alcance.
 
 Cambiar una de estas reglas exige autorización del responsable, actualización de
 requisitos, ADR cuando corresponda, contrato, pruebas y manuales.
@@ -267,25 +269,31 @@ No cambie librería, geometría o fuente sin revisar ADR 0007, licencias y evide
 
 ## Extensión MFC
 
-`OrderCompletionPublisher` es el puerto del dominio y
-`NoopOrderCompletionPublisher` es el único adaptador.
+`OrderCompletionPublisher` es el puerto del dominio. Existen dos adaptadores
+(`WMS_MFC_ADAPTER`): `noop`, el predeterminado, que solo escribe un log, y
+`telegram` (ADR 0011), que implementa el envío real de misiones MFC. Cada
+decisión que antes estaba abierta quedó registrada:
 
-No añada sockets, telegramas, planificadores o reintentos como una implementación
-“pequeña”. Un adaptador real debe decidir:
+- serialización y contrato: `TELEGRAMS.md`, propiedad de este repositorio;
+- transacción: patrón outbox — `publish()` solo inserta la fila
+  `mfc_mission` `PENDING` dentro de la transacción que completa la orden;
+  la red ocurre después, en el despachador programado;
+- reintentos e idempotencia: intervalo fijo con límite de intentos y
+  `eventId` como clave de repetición; agotados los intentos, la misión queda
+  `FAILED` auditada;
+- observabilidad: eventos estructurados con `missionId`/`eventId` (guía de
+  logs) y libro de transiciones inmutable `mfc_mission_transition`;
+- confirmaciones: REST entrante con rol `WCS` y repetición idempotente.
 
-- serialización y contrato;
-- tiempos de espera y resultado;
-- reintentos e idempotencia;
-- observabilidad;
-- llamada posterior al commit o patrón outbox;
-- comportamiento ante caída del destino.
+No amplíe estos límites como una implementación “pequeña”: cambiar el
+transporte, añadir un socket TCP crudo o un intermediario de mensajes exige
+un ADR nuevo. El dominio sigue sin depender de `mfc`: el puerto y el evento
+son su única superficie.
 
-La llamada actual ocurre dentro de la transacción y es segura únicamente porque el
-adaptador no realiza red. Un transporte real requiere una decisión de arquitectura.
-
-Consulte la [guía de integración](09-integracion-hht-api-y-mfc.md) para el contrato
-HHT y la [preparación de MFC](anexos/guia-futura-integracion-mfc.md) antes de
-cambiar estos límites.
+Consulte la [guía de integración](09-integracion-hht-api-y-mfc.md) para los
+contratos HHT y MFC vigentes; la
+[preparación de MFC](anexos/guia-futura-integracion-mfc.md) queda como
+registro histórico de las preguntas que ADR 0011 respondió.
 
 ## Pruebas
 
@@ -382,7 +390,9 @@ Un cambio está terminado cuando:
 - La aplicación no administra retención de logs.
 - Las líneas de log no incorporan versión/configuración.
 - La aceptación física HandheldPi por WiFi sigue pendiente.
-- MFC es únicamente un puerto con adaptador `noop`.
+- El bucle MFC se probó contra un sustituto del WCS
+  (`scripts/wcs-standin/`), no contra `agv-fleet-controller` real; las
+  misiones SORT están especificadas pero no implementadas.
 - No hay funciones de lotes, series, caducidad, reposición o preparación parcial.
 
 No resuelva una limitación implícitamente dentro de otro cambio. Trátela como alcance

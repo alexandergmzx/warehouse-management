@@ -42,8 +42,8 @@ propietario del proyecto responde por su aceptación.
 | Configurar terminal y cola | Operación | Integración/operación | Red, seguridad y soporte | Pruebas |
 | Autorizar prueba por Wi-Fi | Propietario del proyecto | Red/seguridad y pruebas | Integración y operación | Negocio almacén |
 | Resolver rechazo de sincronización | Operación | Soporte | Integración, administración y negocio | Propietario del proyecto |
-| Aprobar contrato MFC futuro | Propietario del proyecto | Desarrollo/integración | Proveedor MFC, seguridad, operación y negocio | Soporte y pruebas |
-| Autorizar transporte MFC real | Propietario del proyecto | Desarrollo/integración y operación | Seguridad, proveedor MFC y pruebas | Negocio almacén |
+| Aprobar cambios al contrato MFC (`TELEGRAMS.md`) | Propietario del proyecto | Desarrollo/integración | Consumidor WCS, seguridad, operación y negocio | Soporte y pruebas |
+| Autorizar cambios del transporte MFC (ADR 0011) | Propietario del proyecto | Desarrollo/integración y operación | Seguridad, consumidor WCS y pruebas | Negocio almacén |
 | Mantener la copia oficial del manual | Propietario del proyecto | Propietario del manual | Responsables de cada contenido | Todas las personas usuarias |
 | Validar instrucciones con usuarios | Responsable de negocio | Capacitador y pruebas | Supervisor y responsable técnico | Propietario del manual |
 | Autorizar una publicación | Propietario del proyecto | Propietario del manual | Negocio, desarrollo, operación, seguridad y pruebas | Todas las personas afectadas |
@@ -62,7 +62,7 @@ propietario del proyecto responde por su aceptación.
 | Soporte | | | | |
 | Pruebas | | | | |
 | Integración HHT/API | | | | |
-| Integración MFC futura | | | | |
+| Integración MFC | | | | |
 | Propietario del manual | | | | |
 | Capacitación | | | | |
 

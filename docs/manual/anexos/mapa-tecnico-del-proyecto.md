@@ -13,7 +13,7 @@
 | `identity` | Usuarios, terminales, sesiones opacas e identidad autenticada |
 | `inventory` | Existencias y movimientos inmutables |
 | `label` | QR PNG y PDF deterministas |
-| `mfc` | Adaptador vacío para finalización de órdenes |
+| `mfc` | Adaptadores de finalización (`noop` y `telegram`), outbox de misiones, despachador y confirmaciones del WCS (ADR 0011) |
 | `orders` | Órdenes, líneas y puerto de finalización |
 | `picking` | Asignación, escaneos, confirmación y recuperación de tareas |
 | `security` | Cadenas de seguridad API y tablero |
@@ -113,6 +113,7 @@ app_user + device
 | Etiquetas | `LabelApiIT` |
 | Tablero | `DashboardApiIT` |
 | Puerto MFC | `OrderCompletionSeamApiIT` |
+| Misiones MFC (emisión, despacho, confirmación, arranque fallido) | `MfcTelegramLifecycleIT`, `TelegramFixturesIT`, `MissionDispatcherFailFastIT` |
 
 ## Documentos por tipo de cambio
 
@@ -126,4 +127,4 @@ app_user + device
 | Tablero | plantilla, seguridad, navegador real y manual de supervisor |
 | Etiqueta | ADR/licencia, generación, determinismo, escaneo y manual administrativo |
 | HandheldPi | contrato en ambos repositorios, pruebas automáticas, loopback y hardware |
-| MFC | nueva decisión, puerto/adaptador, transacción, reintento, observabilidad y operación |
+| MFC | ADR 0011 y `TELEGRAMS.md` vigentes; revisar contrato versionado, migración, adaptador/despachador, pruebas, matriz de configuración, runbooks y manuales |

@@ -42,6 +42,7 @@ Además pruebe navegador, red, SQL o hardware cuando corresponda.
 - No use Hibernate para modificar la estructura.
 - No use `flyway repair` para ocultar cambios.
 - No registre claves o sesiones.
-- No añada TCP/MFC real dentro de la transacción actual.
+- No añada red dentro de la transacción de confirmación (el adaptador MFC
+  solo inserta la fila outbox, ADR 0011) ni un socket TCP crudo.
 - No declare terminado por compilación.
 - No añada atribución de asistentes.

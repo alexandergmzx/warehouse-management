@@ -39,7 +39,7 @@ puede comenzar por la guía correspondiente a su trabajo.
 | Integra una terminal u otro cliente con la API | [Guía de integración HHT, API y MFC](09-integracion-hht-api-y-mfc.md) | Borrador inicial |
 | Ya conoce el contrato y necesita un recordatorio | [Guía rápida de integración](referencia-rapida/guia-rapida-integracion.md) | Borrador inicial |
 | Implementa o diagnostica el cliente HHT | [Referencia técnica de integración HHT](anexos/referencia-integracion-hht.md) | Borrador inicial |
-| Evalúa una conexión futura con MFC | [Guía para una futura integración MFC](anexos/guia-futura-integracion-mfc.md) | Preparación; MFC real no implementado |
+| Evalúa la integración MFC | [Guía de integración HHT, API y MFC](09-integracion-hht-api-y-mfc.md) y [preparación histórica](anexos/guia-futura-integracion-mfc.md) | Bucle TRANSPORT implementado (ADR 0011, `TELEGRAMS.md`); anexo conservado como registro |
 | Registra una prueba de integración | [Lista de verificación de integración](plantillas/lista-verificacion-integracion.md) | Borrador inicial |
 | Capacita al personal o mantiene el manual | [Guía de capacitación y publicación](10-capacitacion-y-publicacion.md) | Borrador inicial |
 | Prepara una sesión para un perfil concreto | [Plan de capacitación por perfil](anexos/plan-de-capacitacion-por-perfil.md) | Propuesta inicial |
@@ -102,8 +102,10 @@ documentarán por separado.
 
 La terminal usa una API REST implementada y dispone de una cola local para
 continuar una tarea ya obtenida durante una interrupción. No puede tomar una tarea
-nueva sin conexión. La extensión MFC actual solo escribe un log: no existe una
-conexión TCP ni entrega a un sistema externo.
+nueva sin conexión. La integración MFC está desactivada por defecto; al activar
+el adaptador `telegram` (ADR 0011) el WMS emite misiones TRANSPORT al
+controlador de flota según `TELEGRAMS.md` y recibe sus confirmaciones por REST.
+No existe conexión TCP cruda.
 
 ## Control del manual
 

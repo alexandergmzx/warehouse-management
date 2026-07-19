@@ -292,9 +292,17 @@ Todas las variables se leen al iniciar. Ningún cambio se aplica en caliente.
 | `WMS_TASK_STUCK_THRESHOLD` | `PT30M` | Tiempo para marcar una tarea atascada |
 | `WMS_AUTH_TOKEN_TTL` | `PT8H` | Duración de una sesión de terminal |
 | `WMS_DASHBOARD_POLL_INTERVAL` | `PT2S` | Frecuencia de actualización del tablero |
-| `WMS_MFC_ADAPTER` | `noop` | Adaptador de finalización; `noop` es el único permitido |
+| `WMS_MFC_ADAPTER` | `noop` | Adaptador de finalización: `noop` (sin efecto) o `telegram` (envío real de misiones MFC, ADR 0011) |
+| `WMS_MFC_TELEGRAM_BASE_URL` | vacío | URL del WCS que recibe los telegramas; obligatoria con `telegram` (la aplicación se niega a iniciar sin ella) |
+| `WMS_MFC_TELEGRAM_RETRY_INTERVAL` | `PT30S` | Intervalo del despachador y de los reintentos; solo con `telegram` |
+| `WMS_MFC_TELEGRAM_MAX_ATTEMPTS` | `5` | Intentos de envío antes de marcar la misión `FAILED`; solo con `telegram` |
+| `WMS_MFC_TRANSPORT_SOURCE_LOCATION` | vacío | Código de ubicación origen de las misiones TRANSPORT; debe existir; obligatoria con `telegram` |
+| `WMS_MFC_TRANSPORT_DESTINATION_LOCATION` | vacío | Código de ubicación destino de las misiones TRANSPORT; debe existir; obligatoria con `telegram` |
 
-`PT30M`, `PT8H` y `PT2S` son duraciones: 30 minutos, 8 horas y 2 segundos.
+`PT30M`, `PT8H`, `PT2S` y `PT30S` son duraciones: 30 minutos, 8 horas, 2
+segundos y 30 segundos. Las variables `WMS_MFC_*` adicionales solo importan
+cuando `WMS_MFC_ADAPTER=telegram`; con el valor predeterminado `noop` la
+integración MFC está desactivada y ninguna se lee.
 
 Todas requieren reiniciar la aplicación. La referencia completa sigue siendo
 [`docs/configuration-matrix.md`](../configuration-matrix.md).

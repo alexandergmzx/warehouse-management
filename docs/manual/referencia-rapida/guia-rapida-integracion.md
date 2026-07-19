@@ -42,8 +42,12 @@ orden, `confirmationId` y hora, y deje anotada esta limitación.
 
 ## MFC
 
-MFC no está conectado. Solo existe un evento y un adaptador `noop` que registra un
-log. No habilite `tcp` ni añada red dentro de la transacción actual.
+Desactivado por defecto (`WMS_MFC_ADAPTER=noop`). Con `telegram` (ADR 0011)
+el WMS emite misiones TRANSPORT al WCS por HTTP (contrato `TELEGRAMS.md`) y
+recibe confirmaciones en `POST /api/v1/mfc/missions/{id}/confirmations` con
+el rol `WCS`. La red nunca ocurre dentro de la transacción de confirmación:
+el adaptador solo inserta la fila outbox. No existe `tcp` y las misiones
+SORT responden `501`.
 
 ## Aceptación
 

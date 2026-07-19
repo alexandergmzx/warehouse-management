@@ -17,7 +17,7 @@ del piloto\
 | Desarrollo y mantenimiento | 120 minutos | Revisión técnica | Cambio de ejemplo revisado con checklist |
 | Gobierno, seguridad y auditoría | 90 minutos | Mesa de revisión | Decisión limitada con riesgos y responsables |
 | Integración HHT/API | 120 minutos | Laboratorio técnico | Flujo normal, sin conexión y rechazo trazados |
-| Integración MFC futura | Sesión de 90 minutos antes del diseño | Taller de decisión | Puerta de autorización y ADR planificados |
+| Integración MFC | Sesión de 90 minutos | Laboratorio técnico | Contrato `TELEGRAMS.md`, ciclo de misión y operación (ADR 0011) explicados con el sustituto del WCS |
 | Capacitador y propietario del manual | 90 minutos | Taller de facilitación | Validación con usuario y control de versión simulados |
 
 Las duraciones son puntos de partida, no límites. Añada tiempo o sesiones
@@ -159,16 +159,17 @@ Ejecute la variante de Windows o Linux que corresponda al puesto.
 7. Unir logs de un rechazo con `X-Correlation-Id`.
 8. Registrar la limitación de correlación de respuestas exitosas.
 
-## Integración MFC futura
+## Integración MFC
 
-Esta sesión no incluye programación de sockets. El grupo debe completar:
+La integración está implementada (ADR 0011, `TELEGRAMS.md`); la sesión
+recorre lo existente en lugar de decidirlo. El grupo debe completar:
 
-- alcance y propietarios;
-- contrato y seguridad;
-- decisión post-commit u outbox;
-- idempotencia y reintentos;
-- observabilidad y conciliación;
-- pruebas y puerta de autorización.
+- contrato `TELEGRAMS.md`: misiones TRANSPORT, estados y confirmaciones;
+- outbox transaccional: por qué la red nunca ocurre en la transacción;
+- reintentos, idempotencia por `eventId` y misiones `FAILED`;
+- observabilidad: guía de logs y rastro SQL de misiones (§5);
+- ejercicio con el sustituto del WCS (`scripts/wcs-standin/`);
+- límites vigentes: SORT responde `501`; TCP crudo fuera de alcance.
 
 ## Capacitador y propietario del manual
 

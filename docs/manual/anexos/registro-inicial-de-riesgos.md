@@ -23,7 +23,7 @@
 | RSK-15 | Un ajuste negativo puede reducir por debajo de reservas abiertas | Alta | Media | Validación/reserva o control operativo probado | Requiere revisión antes de cada ajuste |
 | RSK-16 | Ajuste de existencias no idempotente ante respuesta ambigua | Alta | Media | Idempotency key o verificación obligatoria antes de repetir | Control operativo actual |
 | RSK-17 | Estado de algunos documentos antiguos está desactualizado | Media | Alta | Reconciliar cabeceras con evidencia actual | Abierto |
-| RSK-18 | MFC real podría introducir red dentro de la transacción | Alta | Media | ADR y outbox/post-commit antes de transporte | Bloquea adaptador real |
+| RSK-18 | MFC real podría introducir red dentro de la transacción | Alta | Media | ADR y outbox/post-commit antes de transporte | Mitigado: ADR 0011 adoptó outbox transaccional; el adaptador `telegram` no hace red en la transacción, verificado por pruebas |
 | RSK-19 | No existe perfil ni arquitectura de producción | Alta | Alta | Diseño productivo completo y aceptación | Bloquea producción |
 | RSK-20 | El HHT no registra `X-Correlation-Id` en respuestas exitosas | Media | Alta | Registrar de forma segura solicitud y eco en todos los resultados; añadir pruebas de trazabilidad | Limita diagnóstico de éxitos |
 | RSK-21 | El manual operativo de la terminal no contiene todavía las imágenes mínimas requeridas | Media | Alta | Capturar pantallas reales de la versión candidata, revisar secretos y validar legibilidad | Bloquea publicación operativa |

@@ -128,6 +128,48 @@ application to "fix" a network-layer failure.
   redirect/capture per your log-retention tooling — this application does
   not manage log retention itself (ADR 0006).
 
+### 5.1 Optional MFC/WCS integration (ADR 0011)
+
+By default (`WMS_MFC_ADAPTER=noop`, or the variable unset) nothing in this
+runbook changes: no telegrams are sent, no scheduler runs, and the sections
+above are the complete procedure. Enable the real MFC integration only when
+a WCS (`agv-fleet-controller`, or its stand-in) actually exists to receive
+telegrams:
+
+```powershell
+$env:WMS_MFC_ADAPTER = "telegram"
+$env:WMS_MFC_TELEGRAM_BASE_URL = "http://<wcs-host>:<port>"
+$env:WMS_MFC_TRANSPORT_SOURCE_LOCATION = "<existing-location-code>"
+$env:WMS_MFC_TRANSPORT_DESTINATION_LOCATION = "<existing-location-code>"
+# optional tuning: WMS_MFC_TELEGRAM_RETRY_INTERVAL (PT30S), WMS_MFC_TELEGRAM_MAX_ATTEMPTS (5)
+```
+
+Operational facts to plan around (`docs/configuration-matrix.md` has the
+full parameter reference; `TELEGRAMS.md` is the wire contract):
+
+- **Fail-fast:** with `telegram` selected and no base-url, or missing
+  transport locations, the application refuses to start and the failure
+  names the missing property — same discipline as the FT-15 database
+  checks. The two location codes must exist as `location` rows.
+- **Network:** telegram delivery is an *outbound* HTTP POST from the WMS to
+  the WCS base-url — no new inbound firewall rule for it. WCS confirmations
+  arrive *inbound* on the existing API port (`/api/v1/mfc/missions/...`), so
+  if the WCS sits outside the subnet scoped in Section 3, extend that rule's
+  `-RemoteAddress` range rather than opening a new port.
+- **Credentials:** the WCS authenticates with the same bearer-token login as
+  every API client, under the `WCS` role. `wcs01`/`AGV-FC-01` exist **only**
+  in the dev seed (`db/devdata/`); a preprod deployment must provision its
+  own WCS-role user and device by a new versioned migration, with an
+  externally supplied password — never reuse the dev credentials.
+- **Recovery:** a mission that exhausts its dispatch attempts is marked
+  `FAILED` with the last error recorded (`docs/sql-diagnostics.md` §5,
+  `docs/log-analysis-guide.md`); missions queued while the WCS was down stay
+  `PENDING` and are picked up automatically on a later scheduler tick.
+- **Integration check:** `scripts/wcs-standin/wcs_standin.py` is a scripted
+  WCS stand-in for verifying the loop end to end before a real fleet
+  controller exists — see
+  `docs/evidence/2026-07-19-mfc-transport-loop.md` for a recorded run.
+
 ## 6. Rollback
 
 Two distinct rollback scenarios, handled differently:

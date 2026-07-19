@@ -29,12 +29,12 @@ evidencia requerida
 | Administración técnica | Administrador/desarrollo | Solicitudes coinciden con `API.md` | Revisión técnica pendiente |
 | Operación Windows/Linux | Operador de cada plataforma | Comandos y resultados reales | Pendiente |
 | Diagnóstico | Soporte/DBA | Consultas seguras y resultados interpretables | Pendiente |
-| Matriz FT-01 a FT-19 | Pruebas | Correspondencia con especificación y evidencia | Revisión técnica pendiente |
+| Matriz FT-01 a FT-24 | Pruebas | Correspondencia con especificación y evidencia | Revisión técnica pendiente |
 | Mapa técnico | Desarrollo | Paquetes, estados y fuentes vigentes | Revisión técnica pendiente |
 | Responsabilidades | Propietario y responsables de área | Asignación nominal y aprobación RACI | Pendiente |
 | Riesgos | Propietario y seguridad | Prioridad, propietario, fecha y decisión | Pendiente |
 | Integración HHT | Desarrollo HandheldPi/WMS | Contrato, cola y errores coinciden con código | Revisión documental realizada; aceptación pendiente |
-| Integración MFC futura | Arquitectura y proveedor futuro | Puerta de decisión completa | No aplicable hasta autorizar alcance; conservar como preparación |
+| Integración MFC | Arquitectura, desarrollo y operación | Contrato `TELEGRAMS.md`, ADR 0011 y secciones MFC del manual coinciden con lo implementado | Implementada (2026-07-19); validación por perfil pendiente como el resto del manual |
 
 ## Guías rápidas
 

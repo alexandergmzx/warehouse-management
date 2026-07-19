@@ -23,7 +23,8 @@ Los términos técnicos necesarios se explican en el
 | HandheldPi por la red inalámbrica y dispositivo físico | Pendiente de prueba completa | No debe declararse aceptada para el almacén |
 | Herramientas administrativas con la API `v1` | Implementadas como interfaz REST | Requieren cuenta `ADMIN`; no forman parte del flujo HHT |
 | Tablero web | Solo consulta | No es una interfaz de integración ni permite recuperar tareas |
-| MFC | Existe el punto de extensión y un adaptador que solo registra un log | No existe conexión TCP, telegrama, cola ni entrega a un MFC |
+| MFC (bucle TRANSPORT) | Implementada: adaptador `telegram`, contrato `TELEGRAMS.md` v1 y endpoints de confirmación para el WCS (ADR 0011) | Desactivada por defecto (`noop`); probada de extremo a extremo contra un sustituto del WCS, no contra un controlador de flota real |
+| MFC (misiones SORT) | Especificada en `TELEGRAMS.md` pero no implementada | Cualquier confirmación SORT responde `501 SORT_NOT_IMPLEMENTED` de forma visible |
 
 ## Fuentes que debe consultar
 
@@ -36,9 +37,12 @@ Use estas fuentes en este orden:
 3. [`API.md`](../../API.md), contrato oficial del WMS.
 4. [`HandheldPi/API.md`](../../../HandheldPi/API.md), comportamiento particular
    del cliente HHT.
-5. [Arquitectura](../architecture.md) y
-   [ADR 0007](../decisions/0007-dashboard-label-and-mfc-contracts.md), para el
-   límite MFC.
+5. [Arquitectura](../architecture.md),
+   [ADR 0007](../decisions/0007-dashboard-label-and-mfc-contracts.md) y
+   [ADR 0011](../decisions/0011-mfc-telegram-transport.md), para el límite y
+   el transporte MFC.
+6. [`TELEGRAMS.md`](../../TELEGRAMS.md), contrato de misiones MFC (el WCS
+   fija una versión).
 
 Si el contrato oficial y una nota del cliente no coinciden, detenga el cambio y
 resuelva la diferencia. No haga que el cliente “adivine” la respuesta.
@@ -52,8 +56,10 @@ resuelva la diferencia. No haga que el cliente “adivine” la respuesta.
 - Los códigos QR de ubicación y artículo son exactos y distinguen mayúsculas de
   minúsculas.
 - Una respuesta `409` nunca debe interpretarse de forma general como éxito.
-- No se debe introducir transporte MFC dentro de la transacción actual de
-  confirmación.
+- No se debe introducir red dentro de la transacción de confirmación: el
+  adaptador `telegram` solo inserta una fila en la tabla de salida
+  (`mfc_mission`, patrón outbox por ADR 0011); la entrega ocurre después,
+  fuera de esa transacción.
 
 ## Flujo completo de una terminal
 
@@ -264,31 +270,56 @@ Cuando una orden cambia a `COMPLETED`, el dominio crea un evento con:
 - `orderNumber`;
 - `completedAt`.
 
-El puerto `OrderCompletionPublisher` recibe ese evento. El único adaptador actual,
-`NoopOrderCompletionPublisher`, escribe un log con `eventId` y `orderNumber` y
-termina. La propiedad `WMS_MFC_ADAPTER` solo admite `noop`.
+El puerto `OrderCompletionPublisher` recibe ese evento. Existen dos
+adaptadores, seleccionados con `WMS_MFC_ADAPTER`:
 
-Esto demuestra dónde conectar una integración futura, no que exista entrega.
+- **`noop` (valor predeterminado):** escribe un log con `eventId` y
+  `orderNumber` y termina. Sin esta variable, o con `noop`, el WMS se
+  comporta exactamente igual que antes del paquete MFC.
+- **Telegrama real (`telegram`, ADR 0011):** dentro de la misma transacción
+  que completa la orden, inserta una misión `TRANSPORT` en estado `PENDING`
+  en la tabla de salida `mfc_mission` (patrón outbox). Un despachador
+  programado la envía después como un `POST` HTTP al WCS
+  (`WMS_MFC_TELEGRAM_BASE_URL`), con reintentos limitados
+  (`WMS_MFC_TELEGRAM_MAX_ATTEMPTS`); si se agotan, la misión queda `FAILED`
+  con el último error registrado — visible, nunca una pérdida silenciosa.
 
-## Condiciones antes de implementar MFC real
+El WCS confirma por REST en
+`POST /api/v1/mfc/missions/{id}/confirmations` (`ACCEPTED`, `COMPLETED` o
+`FAILED`), autenticado con el mismo esquema de token que cualquier cliente,
+bajo el rol `WCS`. Repetir una confirmación ya aplicada responde
+`200` con `replayed: true`; una transición ilegal responde
+`409 INVALID_MISSION_STATE`. El contrato completo, con ejemplos que también
+son datos de prueba, es [`TELEGRAMS.md`](../../TELEGRAMS.md).
 
-El responsable debe aprobar, como mínimo:
+Las misiones `SORT` están especificadas pero no implementadas: cualquier
+confirmación SORT responde `501 SORT_NOT_IMPLEMENTED`.
 
-- propósito, receptor y propietario del sistema MFC;
-- formato, versión y codificación del mensaje;
-- autenticación, cifrado y reglas de red;
-- confirmación positiva, rechazo y tiempo de espera;
-- idempotencia mediante `eventId`;
-- reintentos, límite, pausa y recuperación;
-- orden de entrega y tratamiento de mensajes atrasados;
-- métricas, logs, alertas y retención;
-- comportamiento si el WMS confirma la orden pero MFC no responde;
-- decisión entre publicación posterior al commit y patrón outbox.
+Mientras no exista `agv-fleet-controller`, el sustituto con guion
+`scripts/wcs-standin/wcs_standin.py` actúa en su nombre; la corrida completa
+está registrada en
+[`docs/evidence/2026-07-19-mfc-transport-loop.md`](../evidence/2026-07-19-mfc-transport-loop.md).
 
-La llamada actual ocurre dentro de la transacción que completa la orden y es segura
-porque el adaptador no hace red. Un adaptador real no debe bloquear esa transacción.
-Use la [guía de preparación MFC](anexos/guia-futura-integracion-mfc.md) antes de
-iniciar el diseño.
+## Decisiones ya tomadas para el MFC real
+
+Las condiciones que esta guía exigía antes de implementar MFC real fueron
+resueltas y registradas — no las decida de nuevo sin un ADR que las cambie:
+
+- transporte, reintentos, idempotencia por `eventId` y patrón outbox:
+  [ADR 0011](../decisions/0011-mfc-telegram-transport.md);
+- formato, versión del mensaje y estados de misión:
+  [`TELEGRAMS.md`](../../TELEGRAMS.md) (versionado semántico; el consumidor
+  fija una versión);
+- autenticación: rol `WCS` con el token opaco existente (ADR 0005);
+- observabilidad: eventos estructurados con `missionId`/`eventId`
+  ([guía de logs](../log-analysis-guide.md)) y rastro SQL
+  ([diagnóstico §5](../sql-diagnostics.md));
+- comportamiento ante WCS caído: la misión permanece `PENDING` y se
+  reintenta; agotados los intentos queda `FAILED` auditada.
+
+Un socket TCP crudo sigue fuera de alcance. La
+[guía de preparación MFC](anexos/guia-futura-integracion-mfc.md) se conserva
+como registro histórico de la preparación.
 
 ## Criterio de aceptación
 

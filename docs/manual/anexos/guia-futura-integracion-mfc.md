@@ -2,18 +2,27 @@
 
 **Público:** responsable del proyecto, arquitectura, desarrollo, operación y
 proveedor MFC\
-**Estado:** documento de preparación; no describe una integración implementada
+**Estado:** registro histórico (2026-07-19). Las preguntas que este documento
+preparaba fueron respondidas por el paquete de trabajo MFC:
+[ADR 0011](../../decisions/0011-mfc-telegram-transport.md) fija el transporte
+(outbox transaccional + HTTP), [`TELEGRAMS.md`](../../../TELEGRAMS.md) es el
+contrato de misiones, y la
+[guía de integración](../09-integracion-hht-api-y-mfc.md) describe lo
+implementado. Este anexo se conserva como evidencia de la preparación, no
+como estado vigente.
 
-## Advertencia de alcance
+## Advertencia de alcance (histórica)
 
-El WMS no tiene hoy transporte TCP ni otro envío real a MFC. Solo existen:
+En el momento de escribir esta guía, el WMS no tenía transporte real a MFC.
+Solo existían:
 
 - el evento `OrderCompletionEvent`;
 - el puerto `OrderCompletionPublisher`;
 - el adaptador `NoopOrderCompletionPublisher`, que escribe un log;
 - la configuración `WMS_MFC_ADAPTER=noop`.
 
-No configure `tcp`: ese valor no está implementado ni soportado.
+Hoy `WMS_MFC_ADAPTER` también admite `telegram` (ADR 0011); un valor `tcp`
+sigue sin existir y un socket TCP crudo sigue fuera de alcance.
 
 ## Evento disponible
 
