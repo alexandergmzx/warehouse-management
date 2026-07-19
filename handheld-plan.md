@@ -1,30 +1,28 @@
 # Connect HandheldPi to the WMS over WiFi — integration plan
 
-Status (2026-07-15): **steps 1–8 implemented and verified.** WMS gate green
-with the new fixture (33/33 IT, `mvnw verify`); HandheldPi suite green (100
-tests); Stage 2 loopback e2e passed 44/44 checks with clean SQL
-reconciliation — see
-`docs/evidence/2026-07-15-hht-loopback-integration.md` and the new pass in
-`docs/executed-test-report.md`. Changes are uncommitted working trees in both
-repositories pending owner review.
+Ecosystem role: `../HandheldPi` is the ecosystem's `hht-picker`
+(`../ECOSYSTEM.md` v3) — the first-generation picker terminal, mandated to
+finish to demonstrable and then freeze, standing proof that the WMS v1 API
+serves two client generations (this device and warehouse-android's
+`:app-picker`) unchanged.
+
+Status (2026-07-19): **steps 1–8 implemented, verified, and committed** in
+both repositories (this repo: `11081b6`, "Add HHT loopback integration
+fixture"; HandheldPi: through `bc44e37`). WMS gate green with the fixture
+(33/33 IT, `mvnw verify`); HandheldPi suite green (100 tests); Stage 2
+loopback e2e passed 44/44 checks with clean SQL reconciliation — see
+`docs/evidence/2026-07-15-hht-loopback-integration.md` and the recorded
+pass in `docs/executed-test-report.md`.
 
 **Remaining: step 9 (Stage 3, owner-executed — needs the physical GamePi20
-and the LAN):**
-
-1. On the WMS host: start the dev instance, confirm local health, then apply
-   the scoped firewall rule per `docs/runbook-linux.md` §3 (or the Windows
-   §3); PostgreSQL stays loopback-only.
-2. Print `LOC:`/`ART:` labels from the WMS label endpoints and an operator
-   badge with `HandheldPi/scripts/make_badge.py picker02`.
-3. On HHT-001: set `/etc/hht/hht.toml` → `[device] id = "HHT-PI-01"`,
-   `[wms] backend = "http"`, `base_url = "http://<wms-host-ip>:8080"`;
-   restart `hht.service`; `curl http://<wms-host-ip>:8080/actuator/health`
-   from the Pi first (runbook §4 — note the 2.4 GHz-only radio).
-4. Run: full happy path, one offline pick (walk out of WiFi range), one
-   replay-rejection (admin blocks the task from the dashboard mid-offline),
-   badge login. Capture PNG screens + `var/hht.jsonl`; record evidence in
-   both repos (WMS: new evidence file closing the runbook §3–4 gap;
-   HandheldPi: TEST_REPORT from the template).
+and the LAN).** The mechanical checklist now lives in HandheldPi itself,
+packaged as two on-device manuals rather than duplicated here:
+`../HandheldPi/docs/DEVICE_DRY_RUN.md` (bench checks, no WMS needed) and
+`../HandheldPi/docs/LAN_E2E_RUNBOOK.md` (the live WMS run — firewall scoping
+per this repo's `docs/runbook-linux.md`/`docs/runbook-windows.md` §3–4,
+badge/label printing, the four Stage 3 scenarios). Evidence lands in both
+repos on completion (WMS: new evidence file closing the runbook §3–4 gap;
+HandheldPi: `TEST_REPORT` from the template).
 
 Scope spans this repository (one dev-fixture migration + evidence) and the
 sibling `../HandheldPi` repository (client adaptation, the bulk of the work).

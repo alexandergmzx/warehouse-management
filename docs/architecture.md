@@ -47,9 +47,12 @@ nothing else. `orders.FakeOrderCompletionPublisher` (test-only) proves the
 port fires exactly once per completed order
 (`OrderCompletionSeamApiIT`).
 
-A future `mfc` TCP adapter implementing the same port would own everything
-below; none of it is implemented, and none of it should leak into
-order-domain code when it is:
+A future real `mfc` adapter implementing the same port — transport chosen by
+ADR per the approved MFC work package (`PLAN.md`), not necessarily TCP —
+would own everything below; none of it is implemented yet, and none of it
+should leak into order-domain code when it is. The telegram contract itself
+(`TELEGRAMS.md`) is authored and owned in this repository per
+`../ECOSYSTEM.md`'s contract rules; `agv-fleet-controller` pins a version:
 
 - **Serialization.** Order-domain code emits the plain `OrderCompletionEvent`
   record; telegram framing/encoding is entirely the adapter's concern.

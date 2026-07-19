@@ -16,10 +16,34 @@ only.
 2. Architecture decisions belong in ADRs (`docs/decisions/`); testable
    requirements belong in `docs/requirements-traceability.md` and
    `docs/functional-test-specification.md`.
-3. All ten delivery phases of this PoC are implemented and evidenced; there
-   is no further phase gate pending. Changes from here on are maintenance,
-   extension, or new scope — evaluate each against the workflow invariants
-   and rules below rather than against a phase plan.
+3. All ten delivery phases of this PoC are implemented and evidenced; that
+   delivery has no further phase gate pending. One new scope package is
+   approved by the owner (2026-07-18, per the ecosystem architecture): the
+   **MFC work package** — telegram contract + sender + mission endpoints,
+   TRANSPORT first, SORT stubbed. Its plan and gates live in `PLAN.md`.
+   All other changes remain maintenance, extension, or new scope — evaluate
+   each against the workflow invariants and rules below.
+
+## Ecosystem context (v3, 2026-07-18)
+
+- This WMS is the source of truth of a seven-repo warehouse-automation
+  ecosystem. The canonical integration map is `../ECOSYSTEM.md` on the Linux
+  workstation; if it is absent on this machine, ask the owner for the current
+  version — do not reconstruct it from memory.
+- Known `/api/v1` consumers: the HandheldPi HHT (ecosystem name `hht-picker`;
+  finish-then-freeze legacy client) and warehouse-android's `:app-picker`
+  (successor, in progress). The API serving both generations unchanged is a
+  deliberate demonstration goal — weigh any v1 change against it.
+- Downstream: `agv-fleet-controller` (the WCS) consumes MFC telegrams;
+  confirmations return via REST. The telegram contract `TELEGRAMS.md` is
+  authored and owned in this repository.
+- Ecosystem contract rules: contracts are versioned, consumers pin a version,
+  integration friction is a contract defect first, example payloads double as
+  test fixtures.
+- The confirmed workflow rule "MFC integration is a future seam, not a TCP
+  implementation" stands: the work package exercises the ADR 0007
+  `OrderCompletionPublisher` seam; transport is chosen by ADR, raw TCP
+  telegram sockets remain out of scope.
 
 ## Current authorization boundary
 

@@ -1,6 +1,6 @@
 # HHT and administration REST contract
 
-**Status: the `/api/v1` HHT/admin surface (Phase 7) is implemented and evidenced; the label and dashboard endpoints (Phase 8) below are implementation in progress.**
+**Status: the `/api/v1` HHT/admin surface (Phase 7) and the label and dashboard endpoints (Phase 8) are implemented and evidenced.**
 Contract version: `v1`  
 Base URL on the LAN: `http://<wms-host>:8080/api/v1`  
 Media type: `application/json`  
@@ -10,6 +10,12 @@ This contract is intentionally small. After `v1` is implemented and published,
 additive response fields may be introduced, but existing fields, paths, state
 names, and error codes must not change within that version. The approved design
 defaults are recorded in `docs/research/phase-3-mvp-recommendation.md`.
+
+Two `/api/v1` client generations pin this contract, per `../ECOSYSTEM.md`:
+the HandheldPi HHT (ecosystem name `hht-picker`, frozen after its LAN
+end-to-end run) and warehouse-android's `:app-picker` (its successor, in
+progress). Serving both unchanged is a deliberate demonstration goal —
+weigh any proposed `v1` change against it.
 
 ## Common rules
 
