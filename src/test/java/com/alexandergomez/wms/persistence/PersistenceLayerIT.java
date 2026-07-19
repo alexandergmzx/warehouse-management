@@ -112,7 +112,7 @@ class PersistenceLayerIT {
         assertEquals("ART:ART-001", art001.getQrValue());
         assertTrue(articles.findByQrValue("ART:ART-002").isPresent());
 
-        assertEquals(5, locations.count());
+        assertEquals(7, locations.count());
         assertTrue(locations.findByCode("A-01-01").isPresent());
 
         assertEquals(5, stock.count());

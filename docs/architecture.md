@@ -17,7 +17,7 @@ The proposed application is a modular monolith. A single deployment would keep t
 | `picking` | Allocation, atomic task claim, scan state machine, confirmation | orders, inventory, identity |
 | `identity` | Users, devices, opaque tokens | shared primitives only |
 | `operations` | Dashboard reads, health, diagnostics-facing projections | read-only ports from all modules |
-| `mfc` | Future outbound completion adapter | orders completion port only |
+| `mfc` | Outbound completion adapters, mission outbox/dispatch, WCS confirmation endpoints | orders completion port, catalog (location lookup), identity (WCS auth) |
 
 If approved, REST controllers will call application services and never repositories directly. Transaction boundaries will belong to application services. Domain code will not depend on HTTP DTOs, JPA repositories, PostgreSQL classes, or the future TCP adapter.
 
@@ -34,50 +34,53 @@ The schema migration location is common to all profiles. The development profile
 
 ## MFC extension seam
 
-**Status: implemented and evidenced (Phase 10).** `orders.OrderCompletionPublisher`
-is the application port; `orders.OrderCompletionEvent` (`eventId`, `orderId`,
-`orderNumber`, `completedAt`) is the immutable message (ADR 0007). Order-domain
-code (`picking.PickingService`, at the point `CustomerOrder` transitions to
+**Status: implemented and evidenced (Phase 10 seam; MFC work package real
+adapter, ADR 0011).** `orders.OrderCompletionPublisher` is the application
+port; `orders.OrderCompletionEvent` (`eventId`, `orderId`, `orderNumber`,
+`completedAt`) is the immutable message (ADR 0007). Order-domain code
+(`picking.PickingService`, at the point `CustomerOrder` transitions to
 `COMPLETED`) depends on only these two types — neither imports anything from
-`mfc`, a socket, or a telegram class, and none of those classes exist anywhere
-in this codebase to leak in. `mfc.NoopOrderCompletionPublisher` is the only
-adapter, selected by `wms.mfc.adapter=noop` (the only supported value; see
-`docs/configuration-matrix.md`) — it logs one structured line and does
-nothing else. `orders.FakeOrderCompletionPublisher` (test-only) proves the
-port fires exactly once per completed order
+`mfc`, a socket, or a telegram class, and none of those classes exist
+anywhere in this codebase to leak in. Two adapters exist, selected by
+`wms.mfc.adapter` (`docs/configuration-matrix.md`): `mfc.NoopOrderCompletionPublisher`
+(default, `noop`) logs one structured line and does nothing else;
+`mfc.TelegramOrderCompletionPublisher` (`telegram`) queues a real MFC
+mission — see below. `orders.FakeOrderCompletionPublisher` (test-only)
+proves the port fires exactly once per completed order
 (`OrderCompletionSeamApiIT`).
 
-A future real `mfc` adapter implementing the same port — transport chosen by
-ADR per the approved MFC work package (`PLAN.md`), not necessarily TCP —
-would own everything below; none of it is implemented yet, and none of it
-should leak into order-domain code when it is. The telegram contract itself
-(`TELEGRAMS.md`) is authored and owned in this repository per
-`../ECOSYSTEM.md`'s contract rules; `agv-fleet-controller` pins a version:
+A real `mfc.TelegramOrderCompletionPublisher` adapter is implemented (ADR
+0011, MFC work package, `PLAN.md`), selected by `wms.mfc.adapter=telegram`
+(the `noop` adapter above remains the default). Order-domain code is
+unchanged by its existence — it still depends on nothing beyond the port and
+`OrderCompletionEvent`. The telegram contract itself (`TELEGRAMS.md`) is
+authored and owned in this repository per `../ECOSYSTEM.md`'s contract
+rules; `agv-fleet-controller` pins a version. How the real adapter resolves
+each boundary the no-op seam left open:
 
-- **Serialization.** Order-domain code emits the plain `OrderCompletionEvent`
-  record; telegram framing/encoding is entirely the adapter's concern.
-- **Timeout.** Connection/write/response timeouts against the MFC endpoint
-  are transport concerns the adapter owns; `publish()`'s contract makes no
-  timing guarantee today (the no-op returns immediately).
-- **Result/delivery outcome.** Whether a real telegram was accepted,
-  rejected, or timed out is not observable through this port as currently
-  defined (`void publish(...)`); a real adapter needing to report delivery
-  outcome back to the order domain would require a considered, separate
-  extension to the port's contract — not a silent behavior change.
-- **Retry ownership.** No retry loop, queue, or scheduler exists or is
-  planned as part of this port; a real adapter would own retries (using
-  `eventId` as the idempotency key an at-least-once retry would replay) and
-  must not block the transaction that calls `publish()`.
-- **Transaction boundary.** `publish()` is currently called synchronously
-  inside the same `@Transactional` method that completes the order (before
-  commit). A real adapter performing real network I/O should reconsider
-  this — either move the call to post-commit (accepting the small window
-  where a commit succeeds but publishing is never attempted) or adopt a
-  transactional-outbox pattern (accepting more implementation complexity to
-  close that window). Neither is implemented; this is a documented decision
-  point for that future work, not a defect in the no-op seam.
-- **Observability.** The no-op adapter logs one structured line per
-  publication (`docs/log-analysis-guide.md`); a real adapter would add its
-  own transport-level correlation (e.g. propagating the request's
-  `correlationId` into the telegram) and metrics (latency, delivery
-  success/failure counts) — none of which exist today.
+- **Serialization.** Order-domain code still emits the plain
+  `OrderCompletionEvent` record; `mfc.TelegramPayload` (the wire shape,
+  `TELEGRAMS.md`) is built entirely inside `mfc`, from `MfcMission` plus a
+  location-code lookup, at dispatch time — not from the event directly.
+- **Timeout/transport.** Owned by `mfc.MissionDispatcher`, via Spring's
+  built-in `RestClient` — no new dependency, per ADR 0011.
+- **Result/delivery outcome.** Still not observable through the port
+  (`void publish(...)` is unchanged); delivery outcome is tracked instead on
+  the `mfc_mission` row's `state` (`PENDING → DISPATCHED → ACCEPTED →
+  COMPLETED | FAILED`, `TELEGRAMS.md`) and its append-only
+  `mfc_mission_transition` ledger — a separate, queryable record rather than
+  a port-contract change.
+- **Retry ownership.** `MissionDispatcher` owns a fixed-interval retry with a
+  capped attempt count (`wms.mfc.telegram.max-attempts`), using `eventId` as
+  the telegram's idempotency field; it never blocks the transaction that
+  calls `publish()`, since that transaction only inserts the outbox row.
+- **Transaction boundary.** Resolved in favor of the transactional-outbox
+  option ADR 0007 raised: `publish()` still runs synchronously pre-commit,
+  but it now only inserts a `PENDING` `mfc_mission` row (fast, no network
+  I/O) — the actual delivery happens later, out of that transaction, via
+  `MissionDispatcher`'s own poll-and-dispatch transaction per mission. See
+  ADR 0011 for the comparison against post-commit dispatch.
+- **Observability.** `TelegramOrderCompletionPublisher` and
+  `MissionDispatcher` both log structured lines (`docs/log-analysis-guide.md`)
+  correlated by `missionId`/`eventId`; the no-op adapter's single log line is
+  unchanged when it remains selected.

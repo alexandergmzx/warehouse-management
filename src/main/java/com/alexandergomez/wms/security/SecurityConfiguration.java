@@ -43,6 +43,8 @@ public class SecurityConfiguration {
                             .requestMatchers(HttpMethod.POST,
                                     "/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
                             .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.POST, "/api/v1/mfc/missions/*/confirmations")
+                            .hasRole("WCS")
                             .anyRequest().authenticated())
                     .exceptionHandling(exceptions -> exceptions
                             .authenticationEntryPoint(authenticationEntryPoint)

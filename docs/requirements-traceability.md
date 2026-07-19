@@ -26,8 +26,13 @@ aggregated status.
 | R-16 | Logs support order/task/user/device/article/location/movement diagnosis | Redaction and structured-log evidence | FT-16, IT-16 |
 | R-17 | QR payloads are exact and generated labels deterministic | Hashes and scan results | FT-17, IT-17 |
 | R-18 | Dashboard is authenticated and refreshes by polling | Browser evidence | FT-18 |
-| R-19 | Completion publisher is a no-op seam with one fake observation | Fake adapter test | IT-18 |
+| R-19 | Completion publisher is a no-op seam with one fake observation (default adapter) | Fake adapter test | IT-18 |
 | R-20 | Explicit exclusions do not leak into the MVP | API/package/scope review | FT-19 |
+| R-21 | Order completion queues exactly one PENDING TRANSPORT mission (telegram adapter); an order that has not fully completed queues none | `mfc_mission` row and SQL count | FT-20, IT-19 |
+| R-22 | The dispatcher delivers, retries with backoff on failure, and marks a mission FAILED after retry exhaustion | Mission state/attempts progression across dispatch calls | FT-21, IT-20 |
+| R-23 | WCS confirmation drives `ACCEPTED -> COMPLETED` with idempotent replay; illegal transitions, unknown missions, and unauthenticated callers are rejected | Confirmation API response codes and problem codes | FT-22, IT-21 |
+| R-24 | SORT missions are a visible, versioned stub (`501`), not a silent gap | Confirmation API response | FT-23, IT-22 |
+| R-25 | The telegram adapter refuses to start without its required configuration | Application context startup failure | FT-24, IT-23 |
 
 ## Evidence rules
 

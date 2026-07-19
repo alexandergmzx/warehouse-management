@@ -1,7 +1,7 @@
 # MVP functional test specification
 
-**Status:** Approved design specification. FT-01–FT-18 executed and passed,
-FT-19 intentionally blocked pending Phase 10 — see
+**Status:** Approved design specification. FT-01–FT-19 executed and passed;
+FT-20–FT-24 (MFC work package) executed and passed — see
 `docs/executed-test-report.md` for the aggregated, evidence-cited results.  
 **Date:** 2026-07-13  
 **Related:** `docs/requirements-traceability.md`, `docs/executed-test-report.md`
@@ -35,7 +35,12 @@ hashes.
 | FT-16 | Execute a stock-changing request and inspect logs | JSON includes correlation/order/task/user/device/article/location/movement fields and excludes secrets. |
 | FT-17 | Generate the same location/article labels twice | Payloads are exact; PNG/PDF outputs are deterministic and scan correctly. |
 | FT-18 | Open the admin dashboard and wait for a polling interval | Admin-only view refreshes without full-page reload; unauthorized access fails. |
-| FT-19 | Inspect the MVP surface for excluded features | No HHT skip, partial pick, direct HHT DB access, TCP, scheduler, or transport retry exists. |
+| FT-19 | Inspect the MVP surface for excluded features | No HHT skip, partial pick, direct HHT DB access, raw TCP telegram socket, or message broker exists (the approved MFC work package's dispatcher/retry loop, FT-21, is in-scope, not excluded). |
+| FT-20 | Complete an order with the `telegram` adapter active; leave a second order's line unpicked | Exactly one `PENDING` TRANSPORT `mfc_mission` row for the completed order; zero rows for the incomplete order. |
+| FT-21 | Dispatch a mission against a stub WCS receiver: immediate success, one failure then success, and repeated failure to exhaustion | Mission reaches `DISPATCHED` on success; stays `PENDING` with incremented attempts after a failure and retries; reaches `FAILED` with a recorded error after `max-attempts`. |
+| FT-22 | WCS confirms `ACCEPTED` then `COMPLETED`; replay `ACCEPTED`; attempt an illegal transition, an unknown mission, and an unauthenticated confirmation | Confirmed transitions apply and are recorded; the replay returns `200 replayed:true` with no new transition row; the illegal transition returns `409 INVALID_MISSION_STATE`; the unknown mission returns `404 MISSION_NOT_FOUND`; the unauthenticated call is rejected. |
+| FT-23 | Confirm a `SORT`-typed mission | `501 SORT_NOT_IMPLEMENTED` — visible and versioned, not a silent 404. |
+| FT-24 | Start the application with `wms.mfc.adapter=telegram` and, separately, without `wms.mfc.telegram.base-url` or without the transport location configuration | Application context fails to start; the failure names the missing property. |
 
 ## Execution classification
 
@@ -43,6 +48,7 @@ hashes.
 - `FT-15` and `FT-16`: configuration and observability evidence.
 - `FT-17` and `FT-18`: presentation and operational evidence.
 - `FT-19`: scope and architecture review.
+- `FT-20` through `FT-24`: MFC work package integration evidence (ADR 0011, `PLAN.md`).
 
 The final report must include passed, failed, blocked, and not-applicable cases.
 A case marked blocked by an unavailable runtime is not a pass.

@@ -41,3 +41,10 @@ wms:
     poll-interval: ${WMS_DASHBOARD_POLL_INTERVAL:PT2S}
   mfc:
     adapter: ${WMS_MFC_ADAPTER:noop}
+    telegram:
+      base-url: ${WMS_MFC_TELEGRAM_BASE_URL:}
+      retry-interval: ${WMS_MFC_TELEGRAM_RETRY_INTERVAL:PT30S}
+      max-attempts: ${WMS_MFC_TELEGRAM_MAX_ATTEMPTS:5}
+    transport:
+      source-location: ${WMS_MFC_TRANSPORT_SOURCE_LOCATION:}
+      destination-location: ${WMS_MFC_TRANSPORT_DESTINATION_LOCATION:}

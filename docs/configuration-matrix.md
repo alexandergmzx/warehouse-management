@@ -24,7 +24,12 @@ omitted from the table below and stated once here instead.
 | `WMS_TASK_STUCK_THRESHOLD` | Application owner (operations tuning) | `PT30M` (ISO-8601 duration) | dev, preprod | Low | Active-task age after which the dashboard/admin API flags a task as stuck. |
 | `WMS_AUTH_TOKEN_TTL` | Application owner (security/operations tuning) | `PT8H` (ISO-8601 duration) | dev, preprod | Low | HHT bearer-token absolute lifetime (ADR 0005). |
 | `WMS_DASHBOARD_POLL_INTERVAL` | Application owner (operations tuning) | `PT2S` (ISO-8601 duration) | dev, preprod | Low | Dashboard client-side polling interval (ADR 0007). |
-| `WMS_MFC_ADAPTER` | Application owner | `noop` | dev, preprod | Low | Selects the `OrderCompletionPublisher` adapter (ADR 0007, Phase 10). `noop` is the only implemented/supported value; a future `tcp` adapter is a documented, not implemented, extension point (`docs/architecture.md`). |
+| `WMS_MFC_ADAPTER` | Application owner | `noop` | dev, preprod | Low | Selects the `OrderCompletionPublisher` adapter (ADR 0007). `noop` (default) does nothing beyond one log line; `telegram` (ADR 0011, MFC work package) emits real MFC mission telegrams. |
+| `WMS_MFC_TELEGRAM_BASE_URL` | Application owner (ecosystem integration) | *(empty)* | dev, preprod | Low (a LAN URL, not a secret) | WCS base URL the dispatcher POSTs telegrams to; required (constructor refuses to start) when `WMS_MFC_ADAPTER=telegram`, unused otherwise. |
+| `WMS_MFC_TELEGRAM_RETRY_INTERVAL` | Application owner (operations tuning) | `PT30S` (ISO-8601 duration) | dev, preprod | Low | Dispatcher poll interval and per-mission retry backoff (ADR 0011); only active under the `telegram` adapter. |
+| `WMS_MFC_TELEGRAM_MAX_ATTEMPTS` | Application owner (operations tuning) | `5` | dev, preprod | Low | Dispatch attempts before a mission is marked `FAILED` (ADR 0011); only active under the `telegram` adapter. |
+| `WMS_MFC_TRANSPORT_SOURCE_LOCATION` | Application owner (ecosystem integration) | *(empty)* | dev, preprod | Low | Location code TRANSPORT missions use as the tote source (TELEGRAMS.md); must name an existing `location.code`. Required (first-use failure) when `WMS_MFC_ADAPTER=telegram`. |
+| `WMS_MFC_TRANSPORT_DESTINATION_LOCATION` | Application owner (ecosystem integration) | *(empty)* | dev, preprod | Low | Location code TRANSPORT missions use as the handover destination (TELEGRAMS.md); must name an existing `location.code`. Required (first-use failure) when `WMS_MFC_ADAPTER=telegram`. |
 
 ## Fixed per profile (not externally configurable)
 

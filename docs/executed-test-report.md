@@ -119,3 +119,30 @@ post-run SQL reconciliation clean (0 stock/ledger mismatches, exactly one
 
 Residual: Stage 3 (physical GamePi20 over WiFi, runbook §3–4 firewall
 exercise) remains open — requires the device and the owner at the LAN.
+
+## Execution pass: 2026-07-19 (MFC work package)
+
+**Build/configuration identifier:** git HEAD `e01b88c` plus the MFC
+implementation working tree. Full details:
+`docs/evidence/2026-07-19-mfc-work-package.md`.
+
+`./mvnw -B verify`: 42/42 tests, 0 Checkstyle violations, 0 SpotBugs
+findings.
+
+| ID | Case | Status | Evidence |
+|---|---|---|---|
+| FT-19 | Inspect the MVP surface for excluded features (re-scoped: a scheduler and a retry loop are now in-scope, MFC-package artifacts, not exclusions) | Passed | evidence "FT-19 re-scope" section: no `java.net.Socket`/`ServerSocket`, no message-broker dependency anywhere in the tree |
+| FT-20 | Order completion queues exactly one PENDING TRANSPORT mission; an incomplete order queues none | Passed | `MfcTelegramLifecycleIT.completingAnOrderQueuesExactlyOnePendingTransportMission`, `.incompleteOrderQueuesNoMission` |
+| FT-21 | Dispatch: immediate success, one failure then success, exhaustion to FAILED | Passed | `MfcTelegramLifecycleIT.dispatchDeliversRetriesAndEventuallyExhausts` |
+| FT-22 | WCS confirmation lifecycle: ACCEPTED → COMPLETED, idempotent replay, illegal transition, unknown mission, unauthenticated call | Passed | `MfcTelegramLifecycleIT.wcsConfirmationLifecycle` |
+| FT-23 | SORT mission confirmation | Passed | `MfcTelegramLifecycleIT.wcsConfirmationLifecycle` (SORT branch) |
+| FT-24 | Telegram adapter refuses to start without base-url / without transport locations | Passed | `MissionDispatcherFailFastIT` (both methods) |
+
+**Totals (this pass):** 6 Passed, 0 Failed, 0 Blocked, 0 Not Applicable.
+
+**Combined FT-01–FT-24 status: 25 Passed, 0 Failed, 0 Blocked, 0 Not
+Applicable.**
+
+Residual: gate 5 (`PLAN.md`) — the consumer proof against a scripted
+`agv-fleet-controller` stand-in — is tracked separately in
+`docs/evidence/2026-07-19-mfc-transport-loop.md`.

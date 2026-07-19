@@ -41,6 +41,9 @@ public enum ProblemCode {
     LOCATION_ALREADY_EXISTS(HttpStatus.CONFLICT, "Location already exists"),
     PICK_SEQUENCE_ALREADY_EXISTS(HttpStatus.CONFLICT, "Pick sequence already exists"),
     NEGATIVE_RESULTING_STOCK(HttpStatus.CONFLICT, "Negative resulting stock"),
+    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "Mission not found"),
+    INVALID_MISSION_STATE(HttpStatus.CONFLICT, "Invalid mission state"),
+    SORT_NOT_IMPLEMENTED(HttpStatus.NOT_IMPLEMENTED, "SORT missions are not implemented"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error");
 
     private static final String TYPE_PREFIX = "https://warehouse.example/problems/";
